@@ -1,0 +1,32 @@
+{
+  "source_commit": "b5b178c07a28d6d19c0bdb9c36bab23a13797419",
+  "tag": "v396-thor.0.1.0",
+  "release_id": 430174319,
+  "assets": [
+    {
+      "name": "Grayjay-Thor-396-arm64-debug.apk",
+      "size": 243264279,
+      "sha256": "695686c7455583b68c76f4a9601a39089cc3ab37bc536fd8119124c2b6c26882"
+    },
+    {
+      "name": "Grayjay-Thor-396.zip",
+      "size": 90213209,
+      "sha256": "7ccc89818b0c7b49c908aa5b93af052797abbd760da575ebf906b80a9aaf76f7"
+    },
+    {
+      "name": "SHA256SUMS.txt",
+      "size": 99,
+      "sha256": "a397bff274a50dbc99d47fc03af1863ed8787bc93e81428d3ffffec75cb711fe"
+    },
+    {
+      "name": "LICENSE.md",
+      "size": 3912,
+      "sha256": "4d8522558ced82190b4b7e2d86d0955e4dc910d0fbb8eb2f01eed7cacd4f94ef"
+    },
+    {
+      "name": "THOR.md",
+      "size": 5177,
+      "sha256": "858b9c847cb6f111100663a57fb7827643989c9e5423c248fe0e34e94b3cf7eb"
+    }
+  ]
+}
