@@ -75,11 +75,15 @@ jobs:
             echo "keyPassword=$KEY_PASSWORD"
           } | sudo tee /opt/key.properties >/dev/null
 
-      - name: Build the signed release APK and run the Thor unit tests
+      # The unit tests already run in the "Build and test Thor" workflow. Building only
+      # the release variant, with a larger heap, avoids the Kotlin compiler running out
+      # of memory on the 7 GB runner.
+      - name: Build the signed release APK
         run: >
-          ./gradlew :app:assembleThorRelease :app:testThorDebugUnitTest
+          ./gradlew :app:assembleThorRelease
           -PtargetAbis=arm64-v8a
-          --tests 'com.futo.platformplayer.thor.*'
+          -Dorg.gradle.jvmargs="-Xmx4g -Dfile.encoding=UTF-8"
+          -Pkotlin.daemon.jvmargs=-Xmx3g
           --stacktrace
 
       - name: Verify the signature and collect the files
