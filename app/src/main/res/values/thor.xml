@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <bool name="standard_launcher_enabled">true</bool>
+    <bool name="thor_launcher_enabled">false</bool>
+    <string name="thor_settings_title">Thor dual screen</string>
+    <string name="thor_settings_description">Unofficial Grayjay modification for AYN Thor. Original software by FUTO. Reopen the app after changing the screen layout.</string>
+    <string name="thor_enabled">Use both screens</string>
+    <string name="thor_enabled_description">Video on the main display, Grayjay and playback controls on the smaller display.</string>
+    <string name="thor_swap_screens">Swap screens</string>
+    <string name="thor_swap_description">Exchange the video and controls displays. Reopen Grayjay Thor to apply.</string>
+    <string name="thor_gamepad">Controller shortcuts</string>
+    <string name="thor_gamepad_description">START: play/pause. L1/R1: seek 10 seconds. The D-pad and A remain available for navigation.</string>
+    <string name="thor_choose_video">Choose a video on the other screen</string>
+    <string name="thor_output_unavailable">The second screen is unavailable. Continuing on one screen.</string>
+    <string name="thor_local_controls">Video on the other screen\nTap here for playback controls</string>
+    <string name="thor_unofficial_update">This is an unofficial Thor build. Install Thor updates manually; source plugins still update normally.</string>
+</resources>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.futo.platformplayer.thor.ThorScreenPolicyTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-31T18:54:49.907Z" hostname="42aa5243e91a" time="0.031">
+  <properties/>
+  <testcase name="controlsUseSmallerDisplayWithoutAssumingItsId" classname="com.futo.platformplayer.thor.ThorScreenPolicyTest" time="0.024"/>
+  <testcase name="duplicatePrimaryIsNotTreatedAsSecondScreen" classname="com.futo.platformplayer.thor.ThorScreenPolicyTest" time="0.0"/>
+  <testcase name="largeDimensionsDoNotOverflowAreaComparison" classname="com.futo.platformplayer.thor.ThorScreenPolicyTest" time="0.002"/>
+  <testcase name="swappingExchangesVideoAndControls" classname="com.futo.platformplayer.thor.ThorScreenPolicyTest" time="0.0"/>
+  <testcase name="missingPrimaryOrInvalidLowerDisplayFallsBack" classname="com.futo.platformplayer.thor.ThorScreenPolicyTest" time="0.0"/>
+  <testcase name="connectedMonitorDoesNotDisplaceTheSmallerThorScreen" classname="com.futo.platformplayer.thor.ThorScreenPolicyTest" time="0.0"/>
+  <testcase name="equalSizeSecondaryDisplaysHaveStableOrdering" classname="com.futo.platformplayer.thor.ThorScreenPolicyTest" time="0.0"/>
+  <testcase name="singleScreenUsesNormalGrayjay" classname="com.futo.platformplayer.thor.ThorScreenPolicyTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

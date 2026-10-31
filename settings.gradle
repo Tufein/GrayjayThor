@@ -1,0 +1,26 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        google()
+        mavenCentral()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://jitpack.io' }
+        // Polycentric Kotlin SDK, published by the Harbor Forgejo project.
+        maven { url 'https://code.futo.org/api/packages/harbor/maven' }
+    }
+}
+
+includeBuild('dep/futopay/android') {
+    dependencySubstitution {
+        substitute module('com.futo.futopay:app') using project(':app')
+    }
+}
+
+rootProject.name = "FutoVideo"
+include ':app'

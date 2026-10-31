@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="thor_settings_title">Thor: twee schermen</string>
+    <string name="thor_settings_description">Onofficiële Grayjay-aanpassing voor de AYN Thor. Oorspronkelijke software van FUTO. Open de app opnieuw nadat je de schermindeling wijzigt.</string>
+    <string name="thor_enabled">Beide schermen gebruiken</string>
+    <string name="thor_enabled_description">Video op het hoofdscherm; Grayjay en de bediening op het kleinere scherm.</string>
+    <string name="thor_swap_screens">Schermen omwisselen</string>
+    <string name="thor_swap_description">Wissel de schermen voor video en bediening om. Open Grayjay Thor opnieuw om dit toe te passen.</string>
+    <string name="thor_gamepad">Controllerbediening</string>
+    <string name="thor_gamepad_description">START: afspelen/pauzeren. L1/R1: 10 seconden terug/vooruit. De D-pad en A blijven beschikbaar voor navigatie.</string>
+    <string name="thor_choose_video">Kies een video op het andere scherm</string>
+    <string name="thor_output_unavailable">Het tweede scherm is niet beschikbaar. De speler gaat verder op één scherm.</string>
+    <string name="thor_local_controls">Video op het andere scherm\nTik hier voor de afspeelbediening</string>
+    <string name="thor_unofficial_update">Dit is een onofficiële Thor-versie. Installeer Thor-updates handmatig; bronplugins worden wel normaal bijgewerkt.</string>
+</resources>
