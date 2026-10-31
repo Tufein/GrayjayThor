@@ -1,0 +1,96 @@
+name: Publish prebuilt Thor preview
+
+on:
+  workflow_dispatch:
+    inputs:
+      assets_ref:
+        description: Branch containing the verified prebuilt release files
+        required: true
+        default: release-assets/v396-thor.0.1.0
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-thor-preview
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Check out the prebuilt assets
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.assets_ref }}
+          lfs: true
+          persist-credentials: false
+
+      - name: Verify the release files
+        run: |
+          python3 - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          manifest = json.loads(Path('release-manifest.json').read_text())
+          expected = {
+              'Grayjay-Thor-396-arm64-debug.apk', 'Grayjay-Thor-396.zip',
+              'SHA256SUMS.txt', 'LICENSE.md', 'THOR.md'
+          }
+          assert {a['name'] for a in manifest['assets']} == expected
+          for asset in manifest['assets']:
+              path = Path(asset['name'])
+              assert path.stat().st_size == asset['size']
+              digest = hashlib.file_digest(path.open('rb'), 'sha256').hexdigest()
+              assert digest == asset['sha256'], f'Checksum mismatch: {path}'
+              print(f'Verified {path}: {digest}')
+          PY
+
+      - name: Upload and publish the verified preview
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os, subprocess
+          from pathlib import Path
+          manifest = json.loads(Path('release-manifest.json').read_text())
+          repo = os.environ['GH_REPO']
+          tag = manifest['tag']
+          release_id = manifest['release_id']
+          endpoint = f'repos/{repo}/releases/{release_id}'
+          def gh(*args):
+              return subprocess.check_output(['gh', *args], text=True)
+          release = json.loads(gh('api', endpoint))
+          assert release['draft'], 'Only a draft release may be changed'
+          assert release['tag_name'] == tag
+          assert release['target_commitish'] == manifest['source_commit']
+          for asset in manifest['assets']:
+              gh('release', 'upload', tag, asset['name'], '--repo', repo, '--clobber')
+              print('Uploaded ' + asset['name'], flush=True)
+          release = json.loads(gh('api', endpoint))
+          uploaded = {a['name']: a for a in release['assets']}
+          for expected in manifest['assets']:
+              actual = uploaded[expected['name']]
+              assert actual['state'] == 'uploaded' and actual['size'] == expected['size']
+              if actual.get('digest'):
+                  assert actual['digest'] == 'sha256:' + expected['sha256']
+              else:
+                  process = subprocess.Popen(['gh', 'release', 'download', tag, '--repo', repo,
+                                              '--pattern', expected['name'], '--output', '-'],
+                                             stdout=subprocess.PIPE)
+                  digest = hashlib.file_digest(process.stdout, 'sha256').hexdigest()
+                  assert process.wait() == 0 and digest == expected['sha256']
+          payload = {
+              'tag_name': tag, 'target_commitish': manifest['source_commit'],
+              'name': release['name'], 'body': release['body'],
+              'draft': False, 'prerelease': True
+          }
+          Path('publish.json').write_text(json.dumps(payload))
+          gh('api', endpoint, '--method', 'PATCH', '--input', 'publish.json')
+          release = json.loads(gh('api', endpoint))
+          assert not release['draft'] and release['prerelease']
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+              summary.write(f"Published [{tag}]({release['html_url']}) with verified prebuilt assets.\n")
+          print(release['html_url'])
+          PY
