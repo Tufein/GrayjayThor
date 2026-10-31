@@ -1,250 +1,134 @@
-# GrayjayThor
+<div align="center">
 
-Grayjay voor de **AYN Thor**, met video op het hoofdscherm en de volledige
-Grayjay-interface op het kleinere scherm. YouTube en de andere videobronnen
-worden aangeboden via de bestaande Grayjay-bronplugins.
+<img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" width="96" alt="Grayjay app icon" />
 
-**[Download de arm64-APK](https://github.com/Tufein/GrayjayThor/releases/download/v396-thor.0.1.0/Grayjay-Thor-396-arm64-debug.apk)**
-· [Releases](https://github.com/Tufein/GrayjayThor/releases)
-· [Installatie en zelf bouwen](THOR.md)
+# Grayjay Thor
 
-Dit is een **onofficiële eerste testversie**. Zet beide schermen aan en start
-de app via het app-pictogram. De app kan naast gewone Grayjay worden geïnstalleerd.
+### Grayjay, made for two screens.
 
-- Video en ondertiteling op het hoofdscherm; zoeken, afspeellijsten en bediening
-  op het andere scherm, met dezelfde speler en afspeelsessie.
-- START: afspelen/pauzeren. L1/R1: 10 seconden terug/vooruit. D-pad en A blijven
-  beschikbaar voor navigatie.
-- Schermen omwisselen via de Thor-instellingen; terugval naar één scherm als
-  het tweede scherm niet beschikbaar is.
-- De normale videospeler is aangepast. Shorts en casting behouden hun bestaande
-  Grayjay-gedrag.
+Watch video on the upper display. Search, browse and control playback below.
 
-De bouw, **8 unit-tests en 4 Android-tests** slagen. Lokale videoweergave,
-schermverdeling en gesimuleerde controllerinvoer zijn in een emulator gecontroleerd.
-Een fysieke AYN Thor en de online bronplugins zijn nog niet getest.
-Zie [het verificatieverslag](docs/verification/2026-10-31.md).
+[![Android 9+](https://img.shields.io/badge/Android-9%2B-3DDC84?style=flat-square&logo=android&logoColor=white)](https://github.com/Tufein/GrayjayThor/releases)
+[![Preview 0.1.0](https://img.shields.io/badge/Preview-0.1.0-0EA5E9?style=flat-square)](https://github.com/Tufein/GrayjayThor/releases/tag/v396-thor.0.1.0)
+[![12 verified checks](https://img.shields.io/badge/Verified_checks-12%2F12-22C55E?style=flat-square)](docs/verification/2026-10-31.md)
+[![Source First License 1.1](https://img.shields.io/badge/License-Source_First_1.1-64748B?style=flat-square)](LICENSE.md)
 
-De oorspronkelijke software is van [FUTO](https://gitlab.futo.org/videostreaming/grayjay).
-Deze aanpassing gebruikt basiscommit `c3ac3017382e9829b25916378d951463e5a93a36`
-(Grayjay 396). De [Source First License 1.1](LICENSE.md), auteursvermeldingen
-en betaalfunctionaliteit van FUTO zijn behouden.
+**[Download the APK](https://github.com/Tufein/GrayjayThor/releases/download/v396-thor.0.1.0/Grayjay-Thor-396-arm64-debug.apk)**
+&nbsp; · &nbsp; [All releases](https://github.com/Tufein/GrayjayThor/releases)
+&nbsp; · &nbsp; [Installation](#installation)
+&nbsp; · &nbsp; [Build from source](#build-from-source)
 
-## Original Grayjay documentation
+</div>
 
-This copy has been modified to add a dual-screen AYN Thor build. It is based on
-[FUTO's Grayjay source](https://gitlab.futo.org/videostreaming/grayjay), commit
-`c3ac3017382e9829b25916378d951463e5a93a36`. This is not an official FUTO release.
-See [THOR.md](THOR.md) for building, installing and using the modification.
-The original license and payment functionality are retained.
+---
 
-The FUTO media app endeavours creating infrastructure for creators to have their content hosted by someone else but at the same time having creators retain full ownership of their content. We want creators to feel like they are publishing to the world, and we want multiple indexers competing with each other to do a good job connecting consumers to creators and their content.
+**Grayjay Thor is an unofficial modification of [FUTO's Grayjay](https://gitlab.futo.org/videostreaming/grayjay) for the AYN Thor.** It brings the existing Grayjay player and source plugins to a layout that uses both displays.
 
-One part of the solution is to create an application that allows users to search through all available media websites and giving creators the tools for direct monetization of their content by allowing users to directly donate to the content creator.
+> **Early preview:** the build, twelve automated checks and an emulator playback check pass. Physical AYN Thor hardware and online source plugins have not yet been validated. This release is a debug-signed test build.
 
-FUTO is an organization dedicated to developing, both through in-house engineering and investment,
-technologies that frustrate centralization and industry consolidation.
+## A place for everything
 
-<table border="0">
- <tr>
-    <td><b style="font-size:30px"><img src="images/video.png" height="700" /></b></td>
-    <td><b style="font-size:30px"><img src="images/video-details.png" height="700" /></b></td>
- </tr>
- <tr>
-    <td>Video</td>
-    <td>Video (details)</td>
- </tr>
-</table>
+| Display | What you see |
+| --- | --- |
+| **Upper display** | Video and subtitles, with a full-screen video window. |
+| **Lower display** | Grayjay's interface: search, sources, playlists, comments and playback controls. |
 
-## What does the app do?
+A single Media3/ExoPlayer session keeps the video, audio, playback position and controls together.
 
-The FUTO media app is a player that exposes multiple video websites as sources in the app. These sources can be easily configured and third-party sources can also manually be added. This is done through the sources UI.
+- **Keep your sources.** Uses the original stable Grayjay source plugins, including YouTube and the other bundled providers. Configure them through Grayjay's Sources page.
+- **Choose your layout.** Swap the video and controls displays in the Thor settings.
+- **Use the controller.** Play, pause and seek with START and the shoulder buttons, while keeping the D-pad and A available for navigation.
+- **Use one screen when needed.** The regular player takes over when a second display is unavailable or Android refuses a second-display launch.
+- **Keep both apps installed.** The separate package ID, `com.futo.platformplayer.thor`, allows installation alongside regular Grayjay.
 
-<table border="0">
- <tr>
-    <td><b style="font-size:30px"><img src="images/source.png" height="700" /></b></td>
- </tr>
- <tr>
-    <td>Sources</td>
- </tr>
-</table>
+## Installation
 
-Additional sources can also be installed. These sources are JavaScript sources, created and maintained by the community.
+1. Download **[Grayjay-Thor-396-arm64-debug.apk](https://github.com/Tufein/GrayjayThor/releases/download/v396-thor.0.1.0/Grayjay-Thor-396-arm64-debug.apk)** from the release page.
+2. Install the APK on your Thor. If Android prompts you, allow installation from the app you used to open the APK.
+3. Turn on **both displays**, then launch **Grayjay Thor (unofficial)** from its app icon.
+4. Set up your video sources through the normal Grayjay Sources page and choose a video.
 
-<table border="0">
- <tr>
-    <td><b style="font-size:30px"><img src="images/source-install.png" height="700" /></b></td>
-    <td><b style="font-size:30px"><img src="images/source-settings.png" height="700" /></b></td>
- </tr>
- <tr>
-    <td>Install a new source</td>
-    <td>Configure a source</td>
- </tr>
-</table>
+Open **Settings → Thor dual screen** to enable or disable the layout, swap displays, or toggle controller shortcuts. After changing the display layout, reopen the app from its icon.
 
-Once the sources are configured, the combined results will be shown throughout the app. The core features of the app will be highlighted below.
+You can also download the release ZIP, which includes the APK, setup notes, the original license, a source patch and verification output.
 
-### Searching
+## Controller shortcuts
 
-When a user enters a search term into the search bar,  the query is posted to the underlying platforms and a list of results that are ranked by relevance is returned. The search functionality of the app allows users to search multiple sources at once, allowing users to discover a wider range of content that is relevant to their interests.
+| Button | Action |
+| --- | --- |
+| **START** | Play or pause; restart a video that has ended. |
+| **L1** | Seek backward 10 seconds when seeking is supported. |
+| **R1** | Seek forward 10 seconds when seeking is supported. |
+| **D-pad / A** | Standard interface navigation. |
+| **Back on the video display** | Bring the controls display to the front. |
 
-<table border="0">
- <tr>
-    <td><b style="font-size:30px"><img src="images/search-list.png" height="700" /></b></td>
-    <td><b style="font-size:30px"><img src="images/search-preview.png" height="700" /></b></td>
- </tr>
- <tr>
-    <td>Search (list)</td>
-    <td>Search (preview)</td>
- </tr>
-</table>
+## Scope and updates
 
-### Channels
+The dual-screen changes apply to the **normal video player**. The separate Shorts player and casting retain their original Grayjay behavior.
 
-Channels allow users to view the creators content, read more about them or support them by donating, purchasing from their store or buying a membership. The FUTO media app only links to other stores and the app does not play an intermediate role in the actual purchase process. This way, creators can directly monetize their own content in the way they like.
+Source plugins can update through Grayjay as usual. Thor app updates are installed manually from this repository's releases. Accounts and settings are stored separately from regular Grayjay; use Grayjay's existing export/import tools to transfer data.
 
-Creators are able to configure their profile using NeoPass.
+For future builds, keep the same signing key to install an update over an existing installation. A build signed with a different key requires a separate migration or reinstall.
 
-<table border="0">
- <tr>
-    <td><b style="font-size:30px"><img src="images/channel.png" height="700" /></b></td>
- </tr>
- <tr>
-    <td>Channel</td>
- </tr>
-</table>
+## Verification
 
-### Feed
+| Check | Result |
+| --- | --- |
+| Thor APK and Android test APK build | Passed |
+| Display selection and fallback | 8 unit tests passed |
+| Player transfer, state preservation and activity recovery | 4 Android tests passed |
+| Local MP4 on one display with controls on the other | Checked in the emulator |
+| Simulated START and R1 input | Pause confirmed; seek advanced exactly 10,000 ms |
+| APK signature and 16 KiB ZIP alignment | Verified |
 
-Subscriptions are a way for users to keep up with the latest videos and content from their favorite creators. The creators you are subscribed to are shown in the creators tab. In the future we will add both creator search and suggested creators.
+The twelve-check badge records this validation run; it is not a live CI badge. Details and test output are available in the **[verification record](docs/verification/2026-10-31.md)**.
 
-<table border="0">
- <tr>
-    <td><b style="font-size:30px"><img src="images/creators.png" height="700" /></b></td>
- </tr>
- <tr>
-    <td>Creators</td>
- </tr>
-</table>
+Hardware-specific display behavior and online provider playback still need testing on a physical Thor.
 
-When you subscribe to a creator, you'll be able to find new videos uploaded by them in the subscriptions tab.
+## Build from source
 
-<table border="0">
- <tr>
-    <td><b style="font-size:30px"><img src="images/subscriptions-list.png" height="700" /></b></td>
-    <td><b style="font-size:30px"><img src="images/subscriptions-preview.png" height="700" /></b></td>
- </tr>
- <tr>
-    <td>Subscriptions (list)</td>
-    <td>Subscriptions (preview)</td>
- </tr>
-</table>
-
-Additionally there is also the "Home" feed which is based purely on recommendations by the underlying platforms. Also here we hope to offer user-picked recommendation engines in the future.
-
-## Settings
-
-The app offers a lot of settings customizing how the app looks and feels. An example of this is the  background behaviour, do you wish to have it use picture in picture, background play or shut off entirely. Another example configuration option is choosing between list views or video previews.
-
-<table border="0">
- <tr>
-    <td><b style="font-size:30px"><img src="images/settings.png" height="700" /></b></td>
- </tr>
- <tr>
-    <td>Settings</td>
- </tr>
-</table>
-
-### Playlists
-
-Playlists allow you to make a collection of videos that you can create and customize to your liking. When you add videos to a playlist, they're grouped together in a single location, making it easy for you to find and watch all of the videos in the playlist in sequence.
-
-<table border="0">
- <tr>
-    <td><b style="font-size:30px"><img src="images/playlists.png" height="700" /></b></td>
-    <td><b style="font-size:30px"><img src="images/playlist.png" height="700" /></b></td>
- </tr>
- <tr>
-    <td>Playlists</td>
-    <td>Playlist</td>
- </tr>
-</table>
-
-Playlists can also be downloaded in their entirety.
-
-### Downloads
-
-Both individual videos and playlists can be downloaded for local, offline playback. You can watch downloaded videos any time, even if you do not have an active internet connection.
-
-<table border="0">
- <tr>
-    <td><b style="font-size:30px"><img src="images/downloads.png" height="700" /></b></td>
- </tr>
- <tr>
-    <td>Downloads</td>
- </tr>
-</table>
-
-### Casting
-
-The app can also cast to a big screen using any of the supported protocols (FastCast, ChromeCast, AirPlay). Not all casting protocols support all features. As a rule of thumb feature-wise FastCast > ChromeCast > AirPlay.
-
-For more information about casting please click [here](./docs/casting.md).
-
-<table border="0">
- <tr>
-    <td><b style="font-size:30px"><img src="images/casting.png" height="700" /></b></td>
- </tr>
- <tr>
-    <td>Casting</td>
- </tr>
-</table>
-
-### Commenting and rating
-
-The app can also cast to comment and rate. For more information about this please click [here](./docs/polycentric.md).
-
-### Creator Linking
-
-The app can also cast to link channels together. For more information about this please click [here](./docs/linking.md).
-
-### Migration and recommendations
-
-Sources have the ability to login, allowing you to use features that require credentials like importing your playlists, importing your subscriptions or have personalized recommendations. Some platforms may require a membership to work at all.
-
-In the future we hope to offer users the choice of their desired recommendation engine and have multiple competing recommendation engines for different audiences.
-
-## Building
-
-1. Download a copy of the repository.
-2. Open the project in Android Studio: Once the repository is cloned, you can open it in Android Studio by selecting "Open an Existing Project" from the welcome screen and navigating to the directory where you cloned the repository.
-3. Open the terminal in Android Studio by clicking on the terminal icon on bottom left and run the following command:
+You will need **JDK 17 or newer**, **Git LFS**, the **Android SDK platform 36**, Android build tools and an `ANDROID_HOME` pointing to your SDK directory. The project includes the Gradle 8.13 wrapper.
 
 ```sh
-git submodule update --init --recursive
+git clone https://github.com/Tufein/GrayjayThor.git
+cd GrayjayThor
+
+export ANDROID_HOME=/path/to/android-sdk
+./scripts/build-thor.sh
 ```
 
-3. Build the project: With the project open in Android Studio, you can build it by selecting "Build > Make Project" from the main menu. This will compile the code and generate an APK file that you can install on your device or emulator.
-4. Run the project: To run the project, select "Run > Run 'app'" from the main menu. This will launch the app on your device or emulator, allowing you to test it and make any necessary changes.
+The script fetches the pinned GitLab submodules and FFmpeg LFS asset, builds the Thor APKs and runs the eight display-selection tests. It builds both `arm64-v8a` for the Thor and `x86_64` for an emulator.
 
-## Contributing
+The APKs are written to:
 
-Please see [CONTRIBUTION.md](./CONTRIBUTION.md).
+```text
+app/build/outputs/apk/thor/debug/
+```
 
-## CI/CD
+Install a local build over USB:
 
-Tests will always run and are required to pass before a merge request is allowed to be merged. The build/deploy CI/CD steps will only be triggered by a tag on the master branch.
+```sh
+adb install -r app/build/outputs/apk/thor/debug/app-thor-arm64-v8a-debug.apk
+```
 
-### Making a new build
+Run the four Android tests with a connected device or emulator:
 
-Create a tag on the master branch, incrementing the last version number by 1 (for example `25` to `26`).
+```sh
+./gradlew :app:connectedThorDebugAndroidTest \
+  -PtargetAbis=arm64-v8a,x86_64 \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.futo.platformplayer.thor.ThorPlayerOutputTest
+```
 
-Click on the CI/CD tab, you should now see the tests and build are in progress. If the build succeeds the last step will become available. The last step is a manual action which can be triggered by clicking the run button on the action. This action will deploy the build to all users using the app through auto-update.
+The Thor build keeps the upstream numeric API version **396**, independent of this fork's Git tags. This preserves the version information used by source plugins.
 
-## Documentation
+## Credits and license
 
-The documentation can be found [here](https://gitlab.futo.org/videostreaming/documents/-/wikis/API-Overview).
+The original Grayjay application is developed by **[FUTO](https://futo.org/)**. This fork is based on [FUTO's GitLab source](https://gitlab.futo.org/videostreaming/grayjay), commit:
 
-## Third-party assets
+```text
+c3ac3017382e9829b25916378d951463e5a93a36
+```
 
-The pairing fingerprint emoji fonts in `app/src/main/res/font/twemoji_fingerprint*.ttf` are [Twemoji](https://github.com/jdecked/twemoji) v17.0.3, Copyright Twitter, Inc. and other contributors, licensed under [CC-BY 4.0](./app/src/main/assets/licenses/TWEMOJI-LICENSE.txt). They are generated by `scripts/generate_twemoji_fonts.py`, trimmed to the emojis in `HarborEmojiPool.kt`.
+This is an unofficial, modified build. FUTO's original copyright notices, licensing and payment functionality are retained. The software is governed by the **[Source First License 1.1](LICENSE.md)**, including its non-commercial use and distribution terms.
+
+[Original Grayjay documentation](UPSTREAM-README.md) · [Detailed Thor notes in Dutch](THOR.md) · [Third-party licenses](app/src/main/assets/licenses)
