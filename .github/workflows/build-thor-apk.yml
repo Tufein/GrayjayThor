@@ -4,6 +4,8 @@ name: Build Thor APK
 # attached to the run as an artifact.
 on:
   workflow_dispatch:
+  push:
+    branches: [claude/project-thread-tnpocv]
 
 jobs:
   build:
