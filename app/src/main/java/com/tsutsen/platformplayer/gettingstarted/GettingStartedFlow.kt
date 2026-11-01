@@ -482,7 +482,7 @@ private fun WelcomeStep(modifier: Modifier = Modifier) {
         )
         Spacer(Modifier.height(Tokens.SpaceLg))
         Text(
-            "Welcome to Bluejay the media app!",
+            "Welcome to TwinJay the media app!",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center,

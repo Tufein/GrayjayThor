@@ -1757,7 +1757,7 @@ private fun AboutItems(viewModel: SettingsViewModel) {
 
         if (context.packageName == "com.tufein.bluejay.thor") {
             Text(
-                text = "$applicationLabel is an unofficial continuation of Bluejay by tsutsen. " +
+                text = "$applicationLabel is an unofficial continuation of Bluejay by tsutsen, made for the AYN Thor. " +
                     "App updates are installed manually; source plugins keep their normal updates.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = scheme.onSurfaceVariant,

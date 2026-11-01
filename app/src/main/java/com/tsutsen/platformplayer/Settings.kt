@@ -234,7 +234,7 @@ class Settings {
         var showComments: Boolean = true
 
         // "Auto" or "NNNp" — quality the player starts each video at.
-        var defaultVideoResolution: String = "Auto"
+        var defaultVideoResolution: String = "1080p"
 
         // Resolution label (DownloadQuality label) a plain download uses.
         var defaultDownloadResolution: String = "480p"
