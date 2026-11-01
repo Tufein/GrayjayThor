@@ -382,6 +382,8 @@ class PlayerRepositoryImpl(
     private val positionScope = kotlinx.coroutines.CoroutineScope(Dispatchers.Main + Job())
     private var positionTickerJob: Job? = null
 
+    private val stallReporter = PlaybackStallReporter(context)
+
     private fun startPositionTicker() {
         positionTickerJob?.cancel()
         positionTickerJob =
@@ -391,6 +393,7 @@ class PlayerRepositoryImpl(
                     if (player != null) {
                         val position = player.currentPosition
                         _playerState.update { it.copy(currentPositionMs = position) }
+                        stallReporter.onTick(player)
                     }
                     kotlinx.coroutines.delay(100) // 10fps for smooth UI
                 }
