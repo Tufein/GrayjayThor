@@ -467,9 +467,15 @@ class SabrSession(
             ?: initialBandwidthBytesPerSec.takeIf { it > 0 }
             ?: BANDWIDTH_ESTIMATE
 
-    private fun recordThroughput(bytes: Long, elapsedMs: Long, mediaUs: Long) {
+    private fun recordThroughput(bytes: Long, elapsedMs: Long, mediaUs: Long, bufferLow: Boolean = false) {
         if (bytes < THROUGHPUT_MIN_BYTES || elapsedMs <= 0) return
-        if (mediaUs < elapsedMs * 1000 * THROUGHPUT_MIN_SPEEDUP) return
+        // A response slower than real time is normally the server pacing us
+        // (app-limited), so it says nothing about the network. But when the
+        // buffer is nearly empty the transfer is network-limited by definition,
+        // and ignoring it left the estimate stuck at its optimistic seed: the
+        // server then kept choosing bitrates the connection cannot sustain,
+        // causing play-a-few-seconds-then-rebuffer loops.
+        if (!bufferLow && mediaUs < elapsedMs * 1000 * THROUGHPUT_MIN_SPEEDUP) return
 
         val sample = bytes * 1000 / elapsedMs
         throughputBytesPerSec =
@@ -696,7 +702,8 @@ class SabrSession(
             recordThroughput(
                 mediaBytes - bytesBefore,
                 System.currentTimeMillis() - sentMs,
-                mediaUsDelivered - mediaUsBefore
+                mediaUsDelivered - mediaUsBefore,
+                bufferLow = starved()
             )
             try { response.body?.close() } catch (_: Throwable) {}
             currentResponse = null

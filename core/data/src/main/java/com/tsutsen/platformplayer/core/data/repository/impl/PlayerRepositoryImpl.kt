@@ -611,7 +611,10 @@ class PlayerRepositoryImpl(
                             .Builder(context)
                             .setLoadControl(
                                 DefaultLoadControl.Builder()
-                                    .setBufferDurationsMs(30_000, 60_000, 750, 1_500)
+                                    .// Resume only after 5 s is buffered (media3 default). A 1.5 s
+                                    // threshold made a connection slower than the stream
+                                    // play a few seconds, stall, and repeat.
+                                    .setBufferDurationsMs(30_000, 60_000, 1_500, 5_000)
                                     .setPrioritizeTimeOverSizeThresholds(true)
                                     .build(),
                             )

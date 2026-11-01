@@ -1,5 +1,19 @@
 # Bluejay Thor changes
 
+## Unreleased — rebuffer loop fix
+
+- SABR throughput estimation ignored every response slower than 2x real time,
+  so on a connection slower than the stream the estimate never left its seed
+  and the server kept choosing bitrates the network could not sustain. Slow
+  responses are now counted when the buffer is nearly empty (clearly
+  network-limited).
+- Active player: resume after a stall only once 5 s is buffered (was 1.5 s),
+  and start at 1.5 s, so playback no longer flips between a few seconds of
+  video and another stall.
+
+Not built or tested here (dependencies unavailable in the cloud container) and
+not verified on a physical Thor.
+
 ## 0.7.3-thor.1 — YouTube startup and buffering
 
 - Resolve the playable source before starting comments, recommendations and
