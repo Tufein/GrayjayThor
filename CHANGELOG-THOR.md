@@ -1,5 +1,26 @@
 # Bluejay Thor changes
 
+## 0.7.3-thor.1 — YouTube startup and buffering
+
+- Resolve the playable source before starting comments, recommendations and
+  chapters, so optional plugin work cannot take the shared engine client first.
+- Seed YouTube SABR with Media3's network-aware bandwidth estimate (converted
+  from bits/s to bytes/s), replacing the fixed 104,857 bytes/s fallback on this
+  playback route. Subsequent SABR transfer measurements remain in control.
+- Configure the active Compose player with a 750 ms startup threshold and
+  1,500 ms rebuffer threshold, while continuing to load 30–60 seconds ahead
+  when the source permits. The old legacy player configuration did not apply
+  to this player. These thresholds are buffer targets, not measured load times.
+- Add startup regressions proving optional work follows source resolution and
+  superseded resolutions do not issue optional requests.
+
+Validation: Thor ARM64/x86_64 APKs and the Android test APK build successfully.
+All 93 targeted JVM tests pass with zero failures or skips. ARM64 signature and
+16 KiB ZIP alignment pass; the preview signing identity is unchanged.
+
+Actual YouTube startup time and sustained playback on a physical Thor still
+need verification; cloud tests cannot reproduce the device/CDN path.
+
 ## 0.7.2-thor.1 — playback and controller reliability
 
 - Safe relative seeking when a stream's duration is unknown, including remote

@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.media3.common.MediaItem
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.FileDataSource
+import androidx.media3.exoplayer.upstream.DefaultBandwidthMeter
 import androidx.media3.exoplayer.dash.DashMediaSource
 import androidx.media3.exoplayer.drm.DefaultDrmSessionManager
 import androidx.media3.exoplayer.drm.HttpMediaDrmCallback
@@ -582,6 +583,13 @@ class EngineVideoUrlResolver
                             SabrMediaSource
                                 .Factory(streamSpec)
                                 .setViewport(source.width, source.height)
+                                // Media3 reports bits/s; SABR expects bytes/s. Use
+                                // its network-aware seed instead of 0.8 Mbps.
+                                .setInitialBandwidth(
+                                    DefaultBandwidthMeter.getSingletonInstance(
+                                        StateApp.instance.context,
+                                    ).bitrateEstimate / 8,
+                                )
                                 .createMediaSource(mediaItem)
 
                         Log.i(TAG, "Created SabrMediaSource successfully")

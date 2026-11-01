@@ -12,6 +12,8 @@ it is not the application built here.
 
 ## Latest reliability improvements
 
+YouTube source resolution now takes priority over optional plugin work, with
+network-aware SABR startup estimates and explicit player buffering thresholds.
 Safe seeking for unknown-duration streams, corrected controller remapping and
 speed holds, per-controller disconnect cleanup, race-free comment pagination and
 fewer unnecessary live-chat reconnects. See [the changelog](CHANGELOG-THOR.md).
@@ -44,7 +46,7 @@ preferences preserves explicit user choices and controller mappings.
 
 ## Development build
 
-The preview version is **0.7.2-thor.1**, based on upstream Bluejay **0.7.0** at
+The preview version is **0.7.3-thor.1**, based on upstream Bluejay **0.7.0** at
 `6a762681cf489aee20f744ae357e247c92ae4b5b`. This is an unofficial development
 build of this continuation, not an official Bluejay release.
 

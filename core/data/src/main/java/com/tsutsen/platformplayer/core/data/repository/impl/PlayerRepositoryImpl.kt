@@ -16,6 +16,7 @@ import androidx.media3.common.Tracks
 import androidx.media3.common.text.CueGroup
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.dash.DashMediaSource
@@ -490,57 +491,6 @@ class PlayerRepositoryImpl(
             _playerState.update { it.copy(selectedQuality = res) }
         }
 
-        if (prefs != null) {
-            extrasScope.launch {
-                if (prefs.showComments) {
-                    launch(Dispatchers.IO) {
-                        try {
-                            val comments =
-                                commentsCache.get(videoId)
-                                    ?: commentRepository?.getComments(videoId)
-                                    ?: emptyList()
-                            commentsCache.put(videoId, comments)
-                            if (generation == playGeneration.get()) {
-                                _playerState.update { it.copy(comments = comments) }
-                            }
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Failed to fetch comments for $videoId", e)
-                        }
-                    }
-                }
-                if (prefs.showRecommendedVideos) {
-                    launch(Dispatchers.IO) {
-                        try {
-                            val recs =
-                                recommendationsCache.get(videoId)
-                                    ?: contentExtrasRepository?.getRecommendations(videoId)
-                                    ?: emptyList()
-                            recommendationsCache.put(videoId, recs)
-                            if (generation == playGeneration.get()) {
-                                _playerState.update { it.copy(recommendations = recs) }
-                            }
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Failed to fetch recommendations for $videoId", e)
-                        }
-                    }
-                }
-                launch(Dispatchers.IO) {
-                    try {
-                        val chapters =
-                            chaptersCache.get(videoId)
-                                ?: contentExtrasRepository?.getChapters(videoId)
-                                ?: emptyList()
-                        chaptersCache.put(videoId, chapters)
-                        if (generation == playGeneration.get() && chapters.isNotEmpty()) {
-                            _playerState.update { it.copy(chapters = chapters) }
-                        }
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Failed to fetch chapters for $videoId", e)
-                    }
-                }
-            }
-        }
-
         try {
             Log.i(TAG, "========================================")
             Log.i(TAG, "play() called with videoId: $videoId")
@@ -571,6 +521,59 @@ class PlayerRepositoryImpl(
             if (generation != playGeneration.get()) {
                 Log.i(TAG, "play() aborted: superseded during resolution ($videoId)")
                 return
+            }
+
+            // Source resolution gets priority over optional plugin calls.
+            // Recommendations share the engine client pool with video details.
+            if (prefs != null) {
+                extrasScope.launch {
+                    if (prefs.showComments) {
+                        launch(Dispatchers.IO) {
+                            try {
+                                val comments =
+                                    commentsCache.get(videoId)
+                                        ?: commentRepository?.getComments(videoId)
+                                        ?: emptyList()
+                                commentsCache.put(videoId, comments)
+                                if (generation == playGeneration.get()) {
+                                    _playerState.update { it.copy(comments = comments) }
+                                }
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Failed to fetch comments for $videoId", e)
+                            }
+                        }
+                    }
+                    if (prefs.showRecommendedVideos) {
+                        launch(Dispatchers.IO) {
+                            try {
+                                val recs =
+                                    recommendationsCache.get(videoId)
+                                        ?: contentExtrasRepository?.getRecommendations(videoId)
+                                        ?: emptyList()
+                                recommendationsCache.put(videoId, recs)
+                                if (generation == playGeneration.get()) {
+                                    _playerState.update { it.copy(recommendations = recs) }
+                                }
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Failed to fetch recommendations for $videoId", e)
+                            }
+                        }
+                    }
+                    launch(Dispatchers.IO) {
+                        try {
+                            val chapters =
+                                chaptersCache.get(videoId)
+                                    ?: contentExtrasRepository?.getChapters(videoId)
+                                    ?: emptyList()
+                            chaptersCache.put(videoId, chapters)
+                            if (generation == playGeneration.get() && chapters.isNotEmpty()) {
+                                _playerState.update { it.copy(chapters = chapters) }
+                            }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Failed to fetch chapters for $videoId", e)
+                        }
+                    }
+                }
             }
 
             // Cast path: the resolver already handed this video to a receiver.
@@ -606,6 +609,12 @@ class PlayerRepositoryImpl(
                     _exoPlayer =
                         ExoPlayer
                             .Builder(context)
+                            .setLoadControl(
+                                DefaultLoadControl.Builder()
+                                    .setBufferDurationsMs(30_000, 60_000, 750, 1_500)
+                                    .setPrioritizeTimeOverSizeThresholds(true)
+                                    .build(),
+                            )
                             .setHandleAudioBecomingNoisy(true)
                             .build()
                     _exoPlayer?.addListener(playerListener)
