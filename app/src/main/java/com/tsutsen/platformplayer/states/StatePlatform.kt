@@ -234,6 +234,7 @@ class StatePlatform {
                     }
                     catch(ex: Throwable) {
                         Logger.e(TAG, "Failed to initialize plugin [${plugin.config.name}]", ex);
+                        StatePlugins.instance.embeddedInstallErrors[plugin.config.id] = "load failed: ${ex.javaClass.simpleName}: ${ex.message}";
                         StateApp.instance.scopeOrNull?.launch(Dispatchers.Main) {
                             UIDialogs.toast("Plugin ${plugin.config.name} failed to load\n${ex.message}");
                         }
