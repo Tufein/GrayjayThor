@@ -1,0 +1,77 @@
+name: Build and test TwinJay
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-thor-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+          submodules: false
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # The package ID contains ".0" (see DEVELOPMENT.md).
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools platforms;android-37.0 build-tools;37.0.0
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Fetch the pinned dependencies and plugins
+        run: ./scripts/prepare-dependencies.sh
+
+      # Same Gradle steps as scripts/build-thor.sh, arm64-v8a only to keep CI fast.
+      - name: Build the Thor APK and run the unit tests
+        run: >
+          ./gradlew --init-script scripts/dependency-toolchain.init.gradle
+          :app:assembleThorDebug
+          :feature:player:impl:testDebugUnitTest
+          :app:testThorDebugUnitTest
+          --tests 'com.tsutsen.platformplayer.activities.*'
+          --tests '*SuccessorDefaultsTest'
+          --tests '*PluginAppIdentityTest'
+          --tests '*SuccessorUpdateTest'
+          --tests '*GithubReleaseUpdateTest'
+          --tests '*SettingsRepositoryImplTest'
+          --tests 'com.tsutsen.platformplayer.player.*'
+          -PtargetAbis=arm64-v8a
+          -Dorg.gradle.jvmargs="-Xmx4g -Dfile.encoding=UTF-8"
+          -Pkotlin.daemon.jvmargs=-Xmx3g
+          --stacktrace
+
+      - name: Upload the APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: twinjay-arm64-debug-apk
+          path: app/build/outputs/apk/thor/debug/*arm64-v8a*.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: twinjay-unit-test-reports
+          path: |
+            app/build/test-results/testThorDebugUnitTest/
+            feature/player/impl/build/test-results/
+          if-no-files-found: warn
+          retention-days: 14

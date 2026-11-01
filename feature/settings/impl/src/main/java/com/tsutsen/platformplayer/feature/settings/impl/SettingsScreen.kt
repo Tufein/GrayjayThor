@@ -126,6 +126,12 @@ import com.tsutsen.platformplayer.core.model.PlaylistOption
 import com.tsutsen.platformplayer.core.model.SourceInfo
 import com.tsutsen.platformplayer.core.navigation.Navigator
 import com.tsutsen.platformplayer.core.ui.GamepadKeyBus
+import com.tsutsen.platformplayer.core.data.update.GithubReleaseUpdate
+import com.tsutsen.platformplayer.core.data.log.PlaybackLogShare
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import android.widget.Toast
+import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -1693,6 +1699,7 @@ private fun BackupTile(
 @Composable
 private fun AboutItems(viewModel: SettingsViewModel) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val scheme = MaterialTheme.colorScheme
     val applicationLabel = remember(context) {
         context.applicationInfo.loadLabel(context.packageManager).toString()
@@ -1758,7 +1765,7 @@ private fun AboutItems(viewModel: SettingsViewModel) {
         if (context.packageName == "com.tufein.bluejay.thor") {
             Text(
                 text = "$applicationLabel is an unofficial continuation of Bluejay by tsutsen, made for the AYN Thor. " +
-                    "App updates are installed manually; source plugins keep their normal updates.",
+                    "App updates come from this project's GitHub releases (use Check for updates below); source plugins keep their normal updates.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = scheme.onSurfaceVariant,
             )
@@ -1774,12 +1781,52 @@ private fun AboutItems(viewModel: SettingsViewModel) {
         )
 
         Column(verticalArrangement = Arrangement.spacedBy(Tokens.SpaceXs)) {
+            if (context.packageName == "com.tufein.bluejay.thor") {
+                SettingsOptionCard(
+                    icon = Icons.Filled.SystemUpdateAlt,
+                    title = "Check for updates",
+                    subtitle = "Looks for a newer $applicationLabel release on GitHub",
+                    onClick = {
+                        scope.launch {
+                            val release =
+                                withContext(Dispatchers.IO) {
+                                    runCatching { GithubReleaseUpdate.fetchLatest() }.getOrNull()
+                                }
+                            when {
+                                release == null ->
+                                    Toast.makeText(context, "Could not check for updates", Toast.LENGTH_LONG).show()
+                                GithubReleaseUpdate.isNewer(release.tag, version) -> {
+                                    Toast.makeText(context, "Update ${release.tag} available", Toast.LENGTH_LONG).show()
+                                    openUrl(context, release.apkUrl ?: release.pageUrl)
+                                }
+                                else ->
+                                    Toast.makeText(context, "You are on the latest version", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    },
+                    groupPosition = GroupPosition.First,
+                )
+                SettingsOptionCard(
+                    icon = Icons.Filled.Upload,
+                    title = "Share playback log",
+                    subtitle = "Send the latest log saved after a playback stall",
+                    onClick = {
+                        val intent = PlaybackLogShare.shareIntent(context)
+                        if (intent == null) {
+                            Toast.makeText(context, "No playback log saved yet", Toast.LENGTH_LONG).show()
+                        } else {
+                            context.startActivity(intent)
+                        }
+                    },
+                    groupPosition = GroupPosition.Middle,
+                )
+            }
             SettingsOptionCard(
                 icon = Icons.Filled.PlayArrow,
                 title = "Launch initial setup",
                 subtitle = "Show the getting started flow again",
                 onClick = { viewModel.restartGettingStarted() },
-                groupPosition = GroupPosition.First,
+                groupPosition = if (context.packageName == "com.tufein.bluejay.thor") GroupPosition.Middle else GroupPosition.First,
             )
             SettingsOptionCard(
                 icon = Icons.Filled.Launch,
