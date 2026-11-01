@@ -1,0 +1,33 @@
+name: Build Thor APK
+
+# Manual build: Actions > Build Thor APK > Run workflow. The debug APKs are
+# attached to the run as an artifact.
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install Android platform 37
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.0" "build-tools;37.0.0" || \
+            "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37" "build-tools;37.0.0"
+      - name: Fetch pinned dependencies
+        run: ./scripts/prepare-dependencies.sh
+      - name: Assemble Thor debug APK
+        run: >
+          ./gradlew --init-script scripts/dependency-toolchain.init.gradle
+          :app:assembleThorDebug -PtargetAbis=arm64-v8a,x86_64 --max-workers=4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thor-debug-apk
+          path: app/build/outputs/apk/thor/debug/*.apk
+          if-no-files-found: error
