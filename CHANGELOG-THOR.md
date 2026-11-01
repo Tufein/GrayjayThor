@@ -2,6 +2,16 @@
 
 ## Unreleased — rebuffer loop fix
 
+- Second root cause, from a 1080p Thor log (stall at ~9.5 s with 68 ms buffered
+  on an 89 s video): YouTube range sources were played as one open-ended
+  progressive GET, which googlevideo throttles to about real time after a short
+  burst. They are now played as chunked DASH (explicit byte-range requests, the
+  existing `VideoHelper.convertItagSourceToChunkedDashSource`), with a fallback
+  to progressive. Also fixed `IAudioSource.getHttpDataSourceFactory()`, which
+  called itself endlessly.
+- The log also shows ~8.5 s spent resolving the video before playback starts
+  (BotGuard/PO token, cipher solve) inside the YouTube plugin; that part is not
+  changed here.
 - Root cause found from a Thor playback log: for non-SABR (unmuxed progressive)
   streams, "Auto" quality loaded the first source the plugin listed, i.e. 2160p
   VP9, which a normal connection cannot sustain (playback stalled with ~50 ms

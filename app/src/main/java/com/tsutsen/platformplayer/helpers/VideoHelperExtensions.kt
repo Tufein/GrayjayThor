@@ -18,7 +18,11 @@ fun IVideoSource.getHttpDataSourceFactory(): DataSource.Factory {
         .setAllowCrossProtocolRedirects(true)
 }
 
-fun IAudioSource.getHttpDataSourceFactory(): DataSource.Factory = getHttpDataSourceFactory()
+fun IAudioSource.getHttpDataSourceFactory(): DataSource.Factory {
+    return DefaultHttpDataSource.Factory()
+        .setUserAgent("Bluejay/1.0")
+        .setAllowCrossProtocolRedirects(true)
+}
 
 fun IPlatformVideoDetails.hasAnySource(): Boolean {
     return video.videoSources.any { it is IVideoUrlSource || it is IHLSManifestSource }

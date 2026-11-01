@@ -28,6 +28,9 @@ import com.tsutsen.platformplayer.api.media.models.streams.sources.IVideoUrlWide
 import com.tsutsen.platformplayer.api.media.models.streams.sources.IWidevineSource
 import com.tsutsen.platformplayer.api.media.models.subtitles.ISubtitleSource
 import com.tsutsen.platformplayer.Settings
+import com.tsutsen.platformplayer.api.media.platforms.js.models.sources.JSAudioUrlRangeSource
+import com.tsutsen.platformplayer.api.media.platforms.js.models.sources.JSVideoUrlRangeSource
+import com.tsutsen.platformplayer.helpers.VideoHelper
 import com.tsutsen.platformplayer.states.StateApp
 import com.tsutsen.platformplayer.states.StateCasting
 import com.tsutsen.platformplayer.api.media.models.video.IPlatformVideoDetails
@@ -694,10 +697,26 @@ class EngineVideoUrlResolver
                         }
 
                     if (videoUrl != null) {
-                        Log.i(TAG, "Creating Progressive MediaSource for video URL: $videoUrl")
-                        ProgressiveMediaSource
-                            .Factory(httpDataSourceFactory)
-                            .createMediaSource(MediaItem.fromUri(Uri.parse(videoUrl)))
+                        // YouTube throttles a single open-ended GET to roughly the
+                        // stream's own bitrate after a short burst (playback then
+                        // stalls every few seconds). Range sources carry the byte
+                        // ranges needed to read the file in chunks instead.
+                        val chunked =
+                            (source as? JSVideoUrlRangeSource)?.takeIf { it.hasItag }?.let { range ->
+                                try {
+                                    Log.i(TAG, "Creating chunked DASH MediaSource for video URL: $videoUrl")
+                                    VideoHelper.convertItagSourceToChunkedDashSource(range).first
+                                } catch (e: Exception) {
+                                    Log.w(TAG, "Chunked video source failed, using progressive", e)
+                                    null
+                                }
+                            }
+                        chunked ?: run {
+                            Log.i(TAG, "Creating Progressive MediaSource for video URL: $videoUrl")
+                            ProgressiveMediaSource
+                                .Factory(httpDataSourceFactory)
+                                .createMediaSource(MediaItem.fromUri(Uri.parse(videoUrl)))
+                        }
                     } else {
                         Log.w(TAG, "VideoUrl source has no URL")
                         null
@@ -752,10 +771,26 @@ class EngineVideoUrlResolver
                         }
 
                     if (audioUrl != null) {
-                        Log.i(TAG, "Creating Progressive MediaSource for audio URL: $audioUrl")
-                        ProgressiveMediaSource
-                            .Factory(httpDataSourceFactory)
-                            .createMediaSource(MediaItem.fromUri(Uri.parse(audioUrl)))
+                        val chunked =
+                            (source as? JSAudioUrlRangeSource)
+                                ?.takeIf {
+                                    it.itagId != null && it.initStart != null && it.initEnd != null &&
+                                        it.indexStart != null && it.indexEnd != null
+                                }?.let { range ->
+                                    try {
+                                        Log.i(TAG, "Creating chunked DASH MediaSource for audio URL: $audioUrl")
+                                        VideoHelper.convertItagSourceToChunkedDashSource(range)
+                                    } catch (e: Exception) {
+                                        Log.w(TAG, "Chunked audio source failed, using progressive", e)
+                                        null
+                                    }
+                                }
+                        chunked ?: run {
+                            Log.i(TAG, "Creating Progressive MediaSource for audio URL: $audioUrl")
+                            ProgressiveMediaSource
+                                .Factory(httpDataSourceFactory)
+                                .createMediaSource(MediaItem.fromUri(Uri.parse(audioUrl)))
+                        }
                     } else {
                         Log.w(TAG, "AudioUrl source has no URL")
                         null
