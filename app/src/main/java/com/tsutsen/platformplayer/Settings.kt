@@ -132,6 +132,8 @@ class Settings {
     var dualScreenDashPageOrder: List<String> = listOf("stats", "top_creators", "continue")
     // Second screen home page: which sources to fetch from (empty = all enabled).
     var dualScreenFeedSources: List<String> = emptyList()
+    // Second screen goes dark while a video plays and it is not touched.
+    var dualScreenSleepWhilePlaying: Boolean = BuildConfig.IS_THOR_BUILD
 
     // Player gesture assignments per player mode and surface slot
     // (see PlayerGesturePreferences). Each map: gesture type

@@ -1298,6 +1298,14 @@ private fun SectionItems(
                         },
                         groupPosition = GroupPosition.First,
                     )
+                    SettingsSwitchCard(
+                        icon = Icons.Filled.Timer,
+                        title = "Dim second screen while playing",
+                        subtitle = "Turns the second screen black after 20 s without touch; touch wakes it",
+                        checked = state.dualScreenSleepWhilePlaying,
+                        onCheckedChange = { viewModel.updateGeneral("dualScreenSleepWhilePlaying", it) },
+                        groupPosition = GroupPosition.Middle,
+                    )
                     SettingsOptionCard(
                         icon = Icons.Filled.Layers,
                         title = "Pages",

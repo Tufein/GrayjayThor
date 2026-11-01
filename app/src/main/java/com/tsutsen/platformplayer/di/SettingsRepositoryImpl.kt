@@ -89,6 +89,7 @@ class SettingsRepositoryImpl
                 dualScreenTopCreatorsScope = s.dualScreenTopCreatorsScope,
                 dualScreenDashPageOrder = s.dualScreenDashPageOrder,
                 dualScreenFeedSources = s.dualScreenFeedSources,
+                dualScreenSleepWhilePlaying = s.dualScreenSleepWhilePlaying,
                 dualScreenLibrarySlots = s.dualScreenLibrarySlots,
                 librarySectionOrder = s.librarySectionOrder,
                 librarySectionsEnabled = s.librarySectionsEnabled,
@@ -131,6 +132,7 @@ class SettingsRepositoryImpl
             when (key) {
                 "enableDeveloperOptions" -> s.advancedSettings = value as Boolean
                 "dualScreen" -> s.dualScreen = value as Boolean
+                "dualScreenSleepWhilePlaying" -> s.dualScreenSleepWhilePlaying = value as Boolean
                 "dynamicColor" -> s.appearance.dynamicColor = value as Boolean
                 "uiRounding" -> s.appearance.uiRounding = (value as Number).toInt()
                 "gridColumns" -> s.feed.gridColumns = value as Int
@@ -301,6 +303,7 @@ class SettingsRepositoryImpl
             s.dualScreenTopCreatorsScope = "week"
             s.dualScreenDashPageOrder = listOf("stats", "top_creators", "continue")
             s.dualScreenFeedSources = emptyList()
+            s.dualScreenSleepWhilePlaying = false
             s.dualScreenLibrarySlots =
                 listOf("watch_later", "liked", "favourite", "history")
             s.librarySectionOrder =

@@ -50,6 +50,7 @@ jobs:
           --tests '*PluginAppIdentityTest'
           --tests '*SuccessorUpdateTest'
           --tests '*GithubReleaseUpdateTest'
+          --tests '*CompanionSleepPolicyTest'
           --tests '*SettingsRepositoryImplTest'
           --tests 'com.tsutsen.platformplayer.player.*'
           -PtargetAbis=arm64-v8a

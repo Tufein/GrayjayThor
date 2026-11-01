@@ -35,6 +35,8 @@ data class AppPreferences(
     val dualScreenDashPageOrder: List<String> =
         listOf("stats", "top_creators", "continue"),
     val dualScreenFeedSources: List<String> = emptyList(),
+    /** Black out the second screen while a video plays and it is not touched. */
+    val dualScreenSleepWhilePlaying: Boolean = false,
     val dualScreenLibrarySlots: List<String> =
         listOf("watch_later", "liked", "favourite", "history"),
     val gridColumns: Int = 3,

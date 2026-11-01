@@ -313,6 +313,11 @@ internal fun CompanionContent(
     // No peek: the sheet only ever opens programmatically (long-press), so
     // a 56dp peek would just reserve a blank strip below the content.
     // 0dp keeps the content's top and bottom insets equal.
+    CompanionSleepLayer(
+        enabled = prefs.dualScreenSleepWhilePlaying,
+        isPlaying = playerState.isPlaying,
+        window = companionWindow,
+    ) {
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
         sheetPeekHeight = 0.dp,
@@ -483,6 +488,7 @@ internal fun CompanionContent(
             }
         },
     )
+    }
 }
 
 /**
