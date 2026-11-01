@@ -1,4 +1,4 @@
-# Bluejay Thor changes
+# Twinjay changes
 
 ## 0.7.3-thor.1 — YouTube startup and buffering
 

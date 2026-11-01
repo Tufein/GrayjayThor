@@ -1,4 +1,4 @@
-# Developing Bluejay Thor
+# Developing Twinjay
 
 The active application is this complete Bluejay-based checkout. The earlier
 GrayjayThor checkout is a separate reference and is not an application dependency.

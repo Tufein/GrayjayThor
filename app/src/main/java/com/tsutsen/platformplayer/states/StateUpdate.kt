@@ -114,7 +114,7 @@ class StateUpdate {
     suspend fun checkForUpdates(context: Context, showUpToDateToast: Boolean, hideExceptionButtons: Boolean = false) = withContext(Dispatchers.IO) {
         if (BuildConfig.IS_THOR_BUILD) {
             if (showUpToDateToast) withContext(Dispatchers.Main) {
-                UIDialogs.toast(context, "Bluejay Thor updates are installed manually; source plugins update as usual.")
+                UIDialogs.toast(context, "Twinjay updates are installed manually; source plugins update as usual.")
             }
             return@withContext
         }
@@ -207,7 +207,7 @@ class StateUpdate {
         }
         fun getApkUrl(version: Int): String {
             check(!BuildConfig.IS_THOR_BUILD) {
-                "Bluejay Thor has no configured app update feed; install successor updates manually."
+                "Twinjay has no configured app update feed; install successor updates manually."
             }
             return if (BuildConfig.IS_UNSTABLE_BUILD) {
                 "https://rel.bluejay.app/$version/app-$DESIRED_ABI-release-unstable.apk"
