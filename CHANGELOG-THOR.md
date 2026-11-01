@@ -2,6 +2,12 @@
 
 ## Unreleased — rebuffer loop fix
 
+- Root cause found from a Thor playback log: for non-SABR (unmuxed progressive)
+  streams, "Auto" quality loaded the first source the plugin listed, i.e. 2160p
+  VP9, which a normal connection cannot sustain (playback stalled with ~50 ms
+  buffered). Auto now picks the highest source up to 1080p whose bitrate fits
+  within 75% of the bandwidth estimate.
+- Playback stalls longer than 10 s now save a diagnostic log to Downloads.
 - SABR throughput estimation ignored every response slower than 2x real time,
   so on a connection slower than the stream the estimate never left its seed
   and the server kept choosing bitrates the network could not sustain. Slow
