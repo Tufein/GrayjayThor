@@ -69,8 +69,8 @@ class EngineVideoUrlResolver
     @Inject
     constructor() : VideoUrlResolver {
         private val TAG = "EngineVideoUrlResolver"
-        private const val AUTO_MAX_HEIGHT = 1080
-        private const val AUTO_BANDWIDTH_SHARE = 0.75
+        private val AUTO_MAX_HEIGHT = 1080
+        private val AUTO_BANDWIDTH_SHARE = 0.75
 
         override suspend fun resolve(contentUrl: String, resumePositionMs: Long): ResolutionResult {
             // Downloaded videos play from local files — no network, no engine.
