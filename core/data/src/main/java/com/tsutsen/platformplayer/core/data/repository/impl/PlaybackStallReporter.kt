@@ -56,6 +56,8 @@ internal class PlaybackStallReporter(
             appendLine("totalBufferedDuration=${player.totalBufferedDuration}ms duration=${player.duration}ms")
             appendLine("videoSize=${player.videoSize.width}x${player.videoSize.height}")
             appendLine("device=${Build.MANUFACTURER} ${Build.MODEL} sdk=${Build.VERSION.SDK_INT}")
+            appendLine("recent video starts:")
+            com.tsutsen.platformplayer.core.data.log.StartupTimings.recentLines().forEach { appendLine("  $it") }
             appendLine()
         }
 
