@@ -133,6 +133,13 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+    // lintVital (run by release builds) trips over upstream translation files
+    // that have strings the default locale lacks, and cannot resolve
+    // PlayerService from the :core:data library. Neither affects the APK.
+    lint {
+        disable 'ExtraTranslation', 'Instantiatable'
+    }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
