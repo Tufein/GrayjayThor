@@ -1063,6 +1063,15 @@ private fun SectionItems(
             "playback" -> {
                 val subtitlesDefault = defaults.subtitle
                 Column(verticalArrangement = Arrangement.spacedBy(Tokens.SpaceXs)) {
+                    SettingsHeader("SponsorBlock")
+                    SettingsSwitchCard(
+                        icon = Icons.Filled.Forward30,
+                        title = "Skip sponsor segments",
+                        subtitle = "Skips sponsors, intros and outros of YouTube videos (sponsor.ajay.app)",
+                        checked = state.sponsorBlock,
+                        onCheckedChange = { viewModel.updateGeneral("sponsorBlock", it) },
+                        groupPosition = GroupPosition.Single,
+                    )
                     SettingsHeader(
                         title = "Subtitles",
                         reset =

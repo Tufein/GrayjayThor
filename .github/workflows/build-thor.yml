@@ -50,6 +50,7 @@ jobs:
           --tests '*PluginAppIdentityTest'
           --tests '*SuccessorUpdateTest'
           --tests '*GithubReleaseUpdateTest'
+          --tests '*SponsorBlockTest'
           --tests '*CompanionSleepPolicyTest'
           --tests '*SettingsRepositoryImplTest'
           --tests 'com.tsutsen.platformplayer.player.*'

@@ -37,6 +37,8 @@ data class AppPreferences(
     val dualScreenFeedSources: List<String> = emptyList(),
     /** Black out the second screen while a video plays and it is not touched. */
     val dualScreenSleepWhilePlaying: Boolean = false,
+    /** Skip sponsor / intro / outro segments marked on sponsor.ajay.app. */
+    val sponsorBlock: Boolean = false,
     val dualScreenLibrarySlots: List<String> =
         listOf("watch_later", "liked", "favourite", "history"),
     val gridColumns: Int = 3,

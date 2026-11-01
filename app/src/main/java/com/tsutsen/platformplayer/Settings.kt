@@ -134,6 +134,8 @@ class Settings {
     var dualScreenFeedSources: List<String> = emptyList()
     // Second screen goes dark while a video plays and it is not touched.
     var dualScreenSleepWhilePlaying: Boolean = BuildConfig.IS_THOR_BUILD
+    // Skip sponsor segments of YouTube videos (SponsorBlock).
+    var sponsorBlock: Boolean = BuildConfig.IS_THOR_BUILD
 
     // Player gesture assignments per player mode and surface slot
     // (see PlayerGesturePreferences). Each map: gesture type

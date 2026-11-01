@@ -393,6 +393,21 @@ class PlayerRepositoryImpl(
 
     private val stallReporter = PlaybackStallReporter(context)
 
+    // SponsorBlock: segments of the current video and the ones already skipped.
+    @Volatile private var sponsorSegments: List<com.tsutsen.platformplayer.core.data.sponsorblock.SponsorSegment> = emptyList()
+    private val sponsorSkipped = mutableSetOf<com.tsutsen.platformplayer.core.data.sponsorblock.SponsorSegment>()
+
+    private fun skipSponsorIfNeeded(player: ExoPlayer, position: Long) {
+        val segments = sponsorSegments
+        if (segments.isEmpty() || !player.isPlaying) return
+        val hit =
+            com.tsutsen.platformplayer.core.data.sponsorblock.SponsorBlock
+                .skipTarget(segments, position, sponsorSkipped) ?: return
+        sponsorSkipped += hit
+        player.seekTo(hit.endMs)
+        android.widget.Toast.makeText(context, "Skipped ${hit.category}", android.widget.Toast.LENGTH_SHORT).show()
+    }
+
     private fun startPositionTicker() {
         positionTickerJob?.cancel()
         positionTickerJob =
@@ -403,6 +418,7 @@ class PlayerRepositoryImpl(
                         val position = player.currentPosition
                         _playerState.update { it.copy(currentPositionMs = position) }
                         stallReporter.onTick(player)
+                        skipSponsorIfNeeded(player, position)
                     }
                     kotlinx.coroutines.delay(100) // 10fps for smooth UI
                 }
@@ -533,6 +549,18 @@ class PlayerRepositoryImpl(
             if (generation != playGeneration.get()) {
                 Log.i(TAG, "play() aborted: superseded during resolution ($videoId)")
                 return
+            }
+
+            sponsorSegments = emptyList()
+            sponsorSkipped.clear()
+            if (prefs?.sponsorBlock == true) {
+                val sbId = com.tsutsen.platformplayer.core.data.sponsorblock.SponsorBlock.videoId(videoId)
+                if (sbId != null) {
+                    extrasScope.launch(Dispatchers.IO) {
+                        val found = com.tsutsen.platformplayer.core.data.sponsorblock.SponsorBlock.fetch(sbId)
+                        if (generation == playGeneration.get()) sponsorSegments = found
+                    }
+                }
             }
 
             // Source resolution gets priority over optional plugin calls.
