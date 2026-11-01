@@ -1,6 +1,5 @@
 package com.tsutsen.platformplayer.core.data.log
 
-import android.os.SystemClock
 import android.util.Log
 
 /**
@@ -19,7 +18,7 @@ object StartupTimings {
     @Synchronized
     fun begin(videoUrl: String) {
         url = videoUrl
-        startMs = SystemClock.elapsedRealtime()
+        startMs = (System.nanoTime() / 1_000_000)
         steps.clear()
     }
 
@@ -27,7 +26,7 @@ object StartupTimings {
     @Synchronized
     fun mark(step: String) {
         if (url == null) return
-        steps += step to (SystemClock.elapsedRealtime() - startMs)
+        steps += step to ((System.nanoTime() / 1_000_000) - startMs)
     }
 
     /** Ends the pending measurement with the first rendered state. */
