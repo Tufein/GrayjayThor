@@ -7,6 +7,9 @@ on:
   push:
     branches: [claude/project-thread-tnpocv]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -33,3 +36,13 @@ jobs:
           name: thor-debug-apk
           path: app/build/outputs/apk/thor/debug/*.apk
           if-no-files-found: error
+      - name: Publish pre-release
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="preview-buffering-fix-${{ github.run_number }}"
+          gh release create "$tag" app/build/outputs/apk/thor/debug/*.apk \
+            --target "${{ github.sha }}" --prerelease \
+            --title "Preview: buffering fix (build ${{ github.run_number }})" \
+            --notes "Debug-signed preview build of branch ${{ github.ref_name }} at ${{ github.sha }}. Fixes the buffer/rebuffer loop; not yet verified on a physical Thor."
