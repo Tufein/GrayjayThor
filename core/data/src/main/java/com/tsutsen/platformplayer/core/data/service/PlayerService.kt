@@ -136,7 +136,7 @@ class PlayerService : MediaSessionService() {
         return NotificationCompat
             .Builder(this, channelId)
             .setSmallIcon(R.drawable.ic_play_notif)
-            .setContentTitle("Bluejay")
+            .setContentTitle("TwinJay")
             .setCategory(Notification.CATEGORY_TRANSPORT)
             .setOngoing(true)
             .setContentIntent(openApp)

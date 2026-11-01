@@ -11,7 +11,7 @@ data class AppPreferences(
     val jumpStepSeconds: Int = 5,
     val playerGestures: PlayerGesturePreferences = PlayerGesturePreferences(),
     val controller: ControllerPreferences = ControllerPreferences(),
-    val defaultVideoResolution: String = "Auto",
+    val defaultVideoResolution: String = "1080p",
     val defaultDownloadResolution: String = "480p",
     val enableDeveloperOptions: Boolean = false,
     val librarySectionOrder: List<String> =

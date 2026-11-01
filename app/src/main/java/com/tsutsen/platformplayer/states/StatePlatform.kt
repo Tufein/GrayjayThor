@@ -74,7 +74,9 @@ class StatePlatform {
 
     //Caches
     private data class CachedPlatformContent(val video: IPlatformContentDetails, val creationTime: OffsetDateTime = OffsetDateTime.now());
-    private val _cacheExpirationSeconds = 60 * 5;
+    // 30 min (was 5): long enough for prefetched next/recommended videos to
+    // still be cached when tapped; stream URLs themselves stay valid for hours.
+    private val _cacheExpirationSeconds = 60 * 30;
     private val _cache : LruCache<String, CachedPlatformContent> = LruCache<String, CachedPlatformContent>(VIDEO_CACHE);
 
     //Clients

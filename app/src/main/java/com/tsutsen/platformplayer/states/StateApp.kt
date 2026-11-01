@@ -631,6 +631,29 @@ class StateApp {
     fun mainAppStarted(context: Context) {
         Logger.i(TAG, "MainApp Started");
 
+        // The first video resolve after a cold start spends ~8 s in the YouTube
+        // plugin (visitor data, cipher solve, browser + PO token). Resolve a
+        // tiny public video once in the background so that cost is paid before
+        // the user presses play; the plugin keeps the results for later calls.
+        instance.scopeOrNull?.launch(Dispatchers.IO) {
+            try {
+                kotlinx.coroutines.delay(WARMUP_DELAY_MS);
+                val url = WARMUP_VIDEO_URL;
+                if (StatePlatform.instance.getContentClientOrNull(url) == null) {
+                    Logger.i(TAG, "Warm-up skipped: no enabled client for $url");
+                    return@launch;
+                }
+                val time = measureTimeMillis {
+                    kotlinx.coroutines.withTimeoutOrNull(WARMUP_TIMEOUT_MS) {
+                        StatePlatform.instance.getContentDetails(url).await();
+                    }
+                }
+                Logger.i(TAG, "Warm-up of video resolver finished in ${time}ms");
+            } catch (e: Throwable) {
+                Logger.w(TAG, "Warm-up of video resolver failed (ignored)", e);
+            }
+        }
+
         //Start loading cache
         instance.scopeOrNull?.launch(Dispatchers.IO) {
             try {
@@ -1096,6 +1119,9 @@ class StateApp {
 
     companion object {
         private val TAG = "StateApp";
+        private const val WARMUP_VIDEO_URL = "https://www.youtube.com/watch?v=jNQXAC9IVRw";
+        private const val WARMUP_DELAY_MS = 4_000L;
+        private const val WARMUP_TIMEOUT_MS = 45_000L;
         @SuppressLint("StaticFieldLeak") //This is only alive while MainActivity is alive
         private var _instance : StateApp? = null;
         val instance : StateApp

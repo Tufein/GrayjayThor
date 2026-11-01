@@ -313,7 +313,7 @@ class SettingsRepositoryImpl
             s.playback.defaultPlaybackSpeed = 1f
             s.playback.defaultSpeedup = 2f
             s.playback.speedupSensitivity = 1f
-            s.content.defaultVideoResolution = "Auto"
+            s.content.defaultVideoResolution = "1080p"
             s.content.defaultDownloadResolution = "480p"
             s.playback.subtitleFont = "default"
             s.playback.subtitleFontSize = 16

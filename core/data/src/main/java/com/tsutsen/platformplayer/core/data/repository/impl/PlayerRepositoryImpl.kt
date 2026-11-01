@@ -76,6 +76,15 @@ class PlayerRepositoryImpl(
         this.urlResolver = resolver
     }
 
+    override fun prefetch(url: String) {
+        if (url.isBlank() || url == _playerState.value.currentVideo?.url) return
+        try {
+            urlResolver?.prefetch(url)
+        } catch (e: Throwable) {
+            Log.w(TAG, "Prefetch failed for $url", e)
+        }
+    }
+
     // Wired by the DI module after construction (same pattern as urlResolver).
     // Present on every build that has a cast subsystem (fcast sender SDK).
     private var castingRepository: CastingRepository? = null
@@ -382,6 +391,8 @@ class PlayerRepositoryImpl(
     private val positionScope = kotlinx.coroutines.CoroutineScope(Dispatchers.Main + Job())
     private var positionTickerJob: Job? = null
 
+    private val stallReporter = PlaybackStallReporter(context)
+
     private fun startPositionTicker() {
         positionTickerJob?.cancel()
         positionTickerJob =
@@ -391,6 +402,7 @@ class PlayerRepositoryImpl(
                     if (player != null) {
                         val position = player.currentPosition
                         _playerState.update { it.copy(currentPositionMs = position) }
+                        stallReporter.onTick(player)
                     }
                     kotlinx.coroutines.delay(100) // 10fps for smooth UI
                 }
@@ -553,6 +565,13 @@ class PlayerRepositoryImpl(
                                 recommendationsCache.put(videoId, recs)
                                 if (generation == playGeneration.get()) {
                                     _playerState.update { it.copy(recommendations = recs) }
+                                    // The top recommendations are the likeliest next
+                                    // taps: resolve them now so they start instantly.
+                                    recs
+                                        .filterIsInstance<com.tsutsen.platformplayer.core.model.VideoCard>()
+                                        .filter { !it.isLive }
+                                        .take(PREFETCH_RECOMMENDATIONS)
+                                        .forEach { prefetch(it.url) }
                                 }
                             } catch (e: Exception) {
                                 Log.e(TAG, "Failed to fetch recommendations for $videoId", e)
@@ -611,7 +630,10 @@ class PlayerRepositoryImpl(
                             .Builder(context)
                             .setLoadControl(
                                 DefaultLoadControl.Builder()
-                                    .setBufferDurationsMs(30_000, 60_000, 750, 1_500)
+                                    // Resume only after 5 s is buffered (media3 default). A 1.5 s
+                                    // threshold made a connection slower than the stream
+                                    // play a few seconds, stall, and repeat.
+                                    .setBufferDurationsMs(30_000, 60_000, 1_500, 5_000)
                                     .setPrioritizeTimeOverSizeThresholds(true)
                                     .build(),
                             )
@@ -1248,6 +1270,9 @@ class PlayerRepositoryImpl(
     private companion object {
         // Formats ExoPlayer's text renderer can display (mirrors Grayjay).
         val SUPPORTED_SUBTITLE_FORMATS = setOf("text/vtt", "application/x-subrip")
+
+        // How many recommendations to resolve ahead of a tap.
+        const val PREFETCH_RECOMMENDATIONS = 2
     }
 }
 

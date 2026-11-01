@@ -23,6 +23,7 @@ class PlaybackQueueRepositoryImpl
         private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
         private val _queue = MutableStateFlow<List<ContentItem>>(emptyList())
+        private var lastPrefetchedUrl: String? = null
         override val queue: StateFlow<List<ContentItem>> = _queue.asStateFlow()
 
         init {
@@ -46,6 +47,14 @@ class PlaybackQueueRepositoryImpl
                             if (idx >= 0)
                                 listOf(current) + q.filter { it.url != current.url }
                             else listOf(current) + q
+                    }
+                    // Resolve the next queued video ahead of time so
+                    // auto-advance / "next" starts without a plugin round trip.
+                    _queue.value.getOrNull(1)?.url?.let { next ->
+                        if (next != lastPrefetchedUrl) {
+                            lastPrefetchedUrl = next
+                            playerRepository.prefetch(next)
+                        }
                     }
                 }
             }

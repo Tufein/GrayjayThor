@@ -28,6 +28,9 @@ import com.tsutsen.platformplayer.api.media.models.streams.sources.IVideoUrlWide
 import com.tsutsen.platformplayer.api.media.models.streams.sources.IWidevineSource
 import com.tsutsen.platformplayer.api.media.models.subtitles.ISubtitleSource
 import com.tsutsen.platformplayer.Settings
+import com.tsutsen.platformplayer.api.media.platforms.js.models.sources.JSAudioUrlRangeSource
+import com.tsutsen.platformplayer.api.media.platforms.js.models.sources.JSVideoUrlRangeSource
+import com.tsutsen.platformplayer.helpers.VideoHelper
 import com.tsutsen.platformplayer.states.StateApp
 import com.tsutsen.platformplayer.states.StateCasting
 import com.tsutsen.platformplayer.api.media.models.video.IPlatformVideoDetails
@@ -69,6 +72,22 @@ class EngineVideoUrlResolver
     @Inject
     constructor() : VideoUrlResolver {
         private val TAG = "EngineVideoUrlResolver"
+        private val AUTO_MAX_HEIGHT = 1080
+        private val AUTO_BANDWIDTH_SHARE = 0.75
+
+        override fun prefetch(contentUrl: String) {
+            // getContentDetails() starts the fetch on StatePlatform's own scope,
+            // de-duplicates concurrent requests for the same URL and stores the
+            // result in its details cache, which resolve() reads first.
+            if (!contentUrl.startsWith("http") || !Settings.instance.browsing.videoCache) return
+            try {
+                if (StatePlatform.instance.getContentClientOrNull(contentUrl) == null) return
+                Log.i(TAG, "Prefetching details for $contentUrl")
+                StatePlatform.instance.getContentDetails(contentUrl)
+            } catch (e: Throwable) {
+                Log.w(TAG, "Prefetch failed for $contentUrl", e)
+            }
+        }
 
         override suspend fun resolve(contentUrl: String, resumePositionMs: Long): ResolutionResult {
             // Downloaded videos play from local files — no network, no engine.
@@ -297,6 +316,40 @@ class EngineVideoUrlResolver
         }
 
         /**
+         * "Auto" for an unmuxed stream: the file we load IS the quality (there
+         * is no adaptive switching later), and the plugin lists sources
+         * highest first. Taking the first one meant 4K (~20 Mbit/s) on a
+         * ~1080p handheld, which a normal connection cannot sustain, so
+         * playback stalled after a few seconds. Instead pick the highest
+         * source up to [AUTO_MAX_HEIGHT] whose bitrate fits within
+         * [AUTO_BANDWIDTH_SHARE] of the current bandwidth estimate, and the
+         * lowest source if none does.
+         */
+        private fun pickAutoUnmuxedVideoSource(sources: List<IVideoUrlSource>): IVideoUrlSource {
+            val bandwidth =
+                try {
+                    DefaultBandwidthMeter.getSingletonInstance(StateApp.instance.context).bitrateEstimate
+                } catch (e: Throwable) {
+                    0L
+                }
+            val ordered =
+                sources.sortedWith(
+                    compareByDescending<IVideoUrlSource> { it.height }
+                        .thenByDescending { it.original }
+                        .thenBy { it.bitrate ?: Int.MAX_VALUE },
+                )
+            val capped = ordered.filter { it.height <= AUTO_MAX_HEIGHT }.ifEmpty { listOf(ordered.last()) }
+            val fitting =
+                capped.firstOrNull { src ->
+                    val bitrate = src.bitrate ?: 0
+                    bandwidth <= 0 || bitrate <= 0 || bitrate <= bandwidth * AUTO_BANDWIDTH_SHARE
+                }
+            val chosen = fitting ?: capped.last()
+            Log.i(TAG, "Auto quality: bandwidth=${bandwidth / 1000}kbps -> ${chosen.height}p (${(chosen.bitrate ?: 0) / 1000}kbps)")
+            return chosen
+        }
+
+        /**
          * The video source [resolveUnmuxedVideoSource] actually loads: the
          * one closest to the configured default resolution ("Auto" = the
          * plugin's first/best). Distance ties go to the lower height (never
@@ -310,7 +363,7 @@ class EngineVideoUrlResolver
             if (sources.isEmpty()) return null
             val defaultHeight =
                 Settings.instance.content.defaultVideoResolution.removeSuffix("p").toIntOrNull()
-            if (defaultHeight == null) return sources.first()
+            if (defaultHeight == null) return pickAutoUnmuxedVideoSource(sources)
             return sources.minWith(
                 compareBy<IVideoUrlSource> { kotlin.math.abs(it.height - defaultHeight) }
                     .thenBy { it.height }
@@ -658,10 +711,26 @@ class EngineVideoUrlResolver
                         }
 
                     if (videoUrl != null) {
-                        Log.i(TAG, "Creating Progressive MediaSource for video URL: $videoUrl")
-                        ProgressiveMediaSource
-                            .Factory(httpDataSourceFactory)
-                            .createMediaSource(MediaItem.fromUri(Uri.parse(videoUrl)))
+                        // YouTube throttles a single open-ended GET to roughly the
+                        // stream's own bitrate after a short burst (playback then
+                        // stalls every few seconds). Range sources carry the byte
+                        // ranges needed to read the file in chunks instead.
+                        val chunked =
+                            (source as? JSVideoUrlRangeSource)?.takeIf { it.hasItag }?.let { range ->
+                                try {
+                                    Log.i(TAG, "Creating chunked DASH MediaSource for video URL: $videoUrl")
+                                    VideoHelper.convertItagSourceToChunkedDashSource(range).first
+                                } catch (e: Exception) {
+                                    Log.w(TAG, "Chunked video source failed, using progressive", e)
+                                    null
+                                }
+                            }
+                        chunked ?: run {
+                            Log.i(TAG, "Creating Progressive MediaSource for video URL: $videoUrl")
+                            ProgressiveMediaSource
+                                .Factory(httpDataSourceFactory)
+                                .createMediaSource(MediaItem.fromUri(Uri.parse(videoUrl)))
+                        }
                     } else {
                         Log.w(TAG, "VideoUrl source has no URL")
                         null
@@ -716,10 +785,26 @@ class EngineVideoUrlResolver
                         }
 
                     if (audioUrl != null) {
-                        Log.i(TAG, "Creating Progressive MediaSource for audio URL: $audioUrl")
-                        ProgressiveMediaSource
-                            .Factory(httpDataSourceFactory)
-                            .createMediaSource(MediaItem.fromUri(Uri.parse(audioUrl)))
+                        val chunked =
+                            (source as? JSAudioUrlRangeSource)
+                                ?.takeIf {
+                                    it.itagId != null && it.initStart != null && it.initEnd != null &&
+                                        it.indexStart != null && it.indexEnd != null
+                                }?.let { range ->
+                                    try {
+                                        Log.i(TAG, "Creating chunked DASH MediaSource for audio URL: $audioUrl")
+                                        VideoHelper.convertItagSourceToChunkedDashSource(range)
+                                    } catch (e: Exception) {
+                                        Log.w(TAG, "Chunked audio source failed, using progressive", e)
+                                        null
+                                    }
+                                }
+                        chunked ?: run {
+                            Log.i(TAG, "Creating Progressive MediaSource for audio URL: $audioUrl")
+                            ProgressiveMediaSource
+                                .Factory(httpDataSourceFactory)
+                                .createMediaSource(MediaItem.fromUri(Uri.parse(audioUrl)))
+                        }
                     } else {
                         Log.w(TAG, "AudioUrl source has no URL")
                         null
