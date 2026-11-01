@@ -1,0 +1,28 @@
+name: Delete releases by tag prefix
+
+on:
+  workflow_dispatch:
+    inputs:
+      prefix:
+        description: Delete every release (and its tag) whose tag starts with this, for example preview-buffering-fix-
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  delete:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Delete matching releases
+        run: |
+          set -euo pipefail
+          prefix="${{ inputs.prefix }}"
+          [ -n "$prefix" ] || { echo "empty prefix"; exit 1; }
+          gh release list --repo "$GITHUB_REPOSITORY" --limit 200 --json tagName --jq '.[].tagName' \
+            | grep -F -- "$prefix" | grep "^$prefix" | while read -r tag; do
+                echo "Deleting $tag"
+                gh release delete "$tag" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag
+              done
