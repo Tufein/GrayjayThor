@@ -75,6 +75,20 @@ class EngineVideoUrlResolver
         private val AUTO_MAX_HEIGHT = 1080
         private val AUTO_BANDWIDTH_SHARE = 0.75
 
+        override fun prefetch(contentUrl: String) {
+            // getContentDetails() starts the fetch on StatePlatform's own scope,
+            // de-duplicates concurrent requests for the same URL and stores the
+            // result in its details cache, which resolve() reads first.
+            if (!contentUrl.startsWith("http") || !Settings.instance.browsing.videoCache) return
+            try {
+                if (StatePlatform.instance.getContentClientOrNull(contentUrl) == null) return
+                Log.i(TAG, "Prefetching details for $contentUrl")
+                StatePlatform.instance.getContentDetails(contentUrl)
+            } catch (e: Throwable) {
+                Log.w(TAG, "Prefetch failed for $contentUrl", e)
+            }
+        }
+
         override suspend fun resolve(contentUrl: String, resumePositionMs: Long): ResolutionResult {
             // Downloaded videos play from local files — no network, no engine.
             val local = StateDownloads.instance.getDownloadedVideos().find { it.url == contentUrl }

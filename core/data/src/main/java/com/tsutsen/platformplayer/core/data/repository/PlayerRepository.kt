@@ -73,6 +73,12 @@ interface PlayerRepository {
     val mediaSessionToken: android.media.session.MediaSession.Token?
         get() = null
 
+    /**
+     * Resolve [url] in the background so a later play() of it starts without
+     * waiting for the source plugin. Best-effort; never throws.
+     */
+    fun prefetch(url: String) {}
+
     companion object {
         const val LOOP_OFF = 0
         const val LOOP_ONCE = 1
@@ -107,4 +113,7 @@ interface VideoUrlResolver {
      * cast path uses it as its start position.
      */
     suspend fun resolve(contentUrl: String, resumePositionMs: Long = 0): ResolutionResult
+
+    /** Warm the details cache for [contentUrl] without blocking. Best-effort. */
+    fun prefetch(contentUrl: String) {}
 }

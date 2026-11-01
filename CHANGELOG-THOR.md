@@ -15,6 +15,10 @@
 - Added a background warm-up: shortly after app start the YouTube plugin resolves
   one tiny public video (jNQXAC9IVRw) so visitor data, cipher and PO token are
   ready when the user presses play. Costs a few requests per app start.
+- Prefetch: the next queued video and the top 2 recommendations are resolved in
+  the background while the current video plays, so tapping them skips the
+  plugin round trip. The video-details cache now lives 30 minutes (was 5) so
+  prefetched results are still there when tapped.
 - Root cause found from a Thor playback log: for non-SABR (unmuxed progressive)
   streams, "Auto" quality loaded the first source the plugin listed, i.e. 2160p
   VP9, which a normal connection cannot sustain (playback stalled with ~50 ms
