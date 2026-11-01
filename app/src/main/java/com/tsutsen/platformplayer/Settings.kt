@@ -241,7 +241,7 @@ class Settings {
         var defaultVideoResolution: String = "1080p"
 
         // Resolution label (DownloadQuality label) a plain download uses.
-        var defaultDownloadResolution: String = "480p"
+        var defaultDownloadResolution: String = "1080p"
     }
 
     @Serializable
