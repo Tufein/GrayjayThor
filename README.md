@@ -1,6 +1,6 @@
 # Bluejay Thor
 
-**[Download the ARM64 APK for the Thor](https://github.com/Tufein/GrayjayThor/raw/e9e65af9a83b9e7b25bc394d11c8427a37e963e8/BluejayThor-0.7.1-thor.1-arm64-v8a-debug.apk)** — unofficial debug preview `0.7.1-thor.1`.
+**[Download the ARM64 APK for the Thor](https://github.com/Tufein/GrayjayThor/raw/d5c57c9cd36ddafaf912147a46297dfa45ce5d4e/BluejayThor-0.7.2-thor.1-arm64-v8a-debug.apk)** — unofficial debug preview `0.7.2-thor.1`.
 
 An unofficial continuation of [Bluejay](https://github.com/tsutsen/bluejay) for
 Android handhelds with two screens, including the AYN Thor.
