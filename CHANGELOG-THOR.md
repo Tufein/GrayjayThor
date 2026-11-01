@@ -1,6 +1,28 @@
-# Bluejay Thor changes
+# TwinJay (Thor) changes
 
-## Unreleased — rebuffer loop fix
+## 0.8.0-thor.1 — first TwinJay release
+
+- App renamed to TwinJay with a new launcher icon; most user-visible "Bluejay"
+  texts now say TwinJay (the original Bluejay is still credited in Settings > About).
+- Update check: Settings > About > "Check for updates" looks at this repository's
+  latest GitHub release and opens the APK download. Thor builds never contact
+  the upstream Bluejay update feed.
+- Settings > About > "Share playback log" sends the newest stall log
+  (Download/twinjay-playback-log-*.txt) through the share sheet.
+- SponsorBlock (Settings > Playback, on by default on Thor): skips sponsor,
+  self-promo, interaction, intro and outro segments of YouTube videos and shows
+  a short "Skipped ..." toast. Only a 4-character hash prefix of the video id is
+  sent to sponsor.ajay.app.
+- Second screen: new "Dim second screen while playing" (Settings > Dual screen,
+  on by default on Thor). After 20 s without touch while a video plays the
+  second screen turns black and drops its brightness; a touch wakes it.
+- Per-step video start timings (resolve, first frame) are logged and added to
+  the stall log, so slow starts can be pinned on one step.
+- Default download quality is now 1080p for new installs (existing choices are kept).
+- CI: every pull request builds the Thor APK and runs the unit tests; a manually
+  started workflow builds and publishes the signed release APK.
+
+### Rebuffer loop fix (also in this release)
 
 - Second root cause, from a 1080p Thor log (stall at ~9.5 s with 68 ms buffered
   on an 89 s video): YouTube range sources were played as one open-ended
