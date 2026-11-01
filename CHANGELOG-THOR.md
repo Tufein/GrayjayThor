@@ -50,5 +50,5 @@ that explicit user-selected `NONE` continues to work. Production gesture
 behavior is unchanged.
 
 Physical AYN Thor display hotplug, long playback sessions, online sources,
-casting and production release signing remain outside this validation. No
-publication status is separate from this validation record.
+casting and production release signing remain outside this validation.
+Publication status is separate from this validation record.
