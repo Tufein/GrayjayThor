@@ -25,7 +25,7 @@ data class DownloadQuality(
             )
 
         /** Pre-selected when the menu opens. */
-        val Default: DownloadQuality = Options.first { it.label == "480p" }
+        val Default: DownloadQuality = Options.first { it.label == "1080p" }
 
         /** Resolve a stored resolution label (e.g. "720p") to a quality. */
         fun fromLabel(label: String): DownloadQuality =

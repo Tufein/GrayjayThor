@@ -62,7 +62,7 @@ class BackgroundWorker(
                     NotificationCompat
                         .Builder(appContext, notificationChannel.id)
                         .setSmallIcon(com.tsutsen.platformplayer.R.drawable.foreground)
-                        .setContentTitle("Bluejay")
+                        .setContentTitle("TwinJay")
                         .setContentText("Failed subscriptions update\n${ex.message}")
                         .setSilent(true)
                         .setChannelId(notificationChannel.id)
@@ -87,7 +87,7 @@ class BackgroundWorker(
             NotificationCompat
                 .Builder(appContext, backgroundChannel.id)
                 .setSmallIcon(com.tsutsen.platformplayer.R.drawable.foreground)
-                .setContentTitle("Bluejay")
+                .setContentTitle("TwinJay")
                 .setContentText("Updating subscriptions...")
                 .setSilent(true)
                 .setChannelId(backgroundChannel.id)
@@ -199,7 +199,7 @@ class BackgroundWorker(
         /*
             manager.notify(13, NotificationCompat.Builder(appContext, notificationChannel.id)
                 .setSmallIcon(com.tsutsen.platformplayer.R.drawable.foreground)
-                .setContentTitle("Bluejay")
+                .setContentTitle("TwinJay")
                 .setContentText("${newItems.size} new content from ${newSubChanges.size} creators")
                 .setSilent(true)
                 .setChannelId(notificationChannel.id).build());*/
