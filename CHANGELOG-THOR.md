@@ -1,5 +1,13 @@
 # TwinJay (Thor) changes
 
+## 0.8.0-thor.2 — find out why YouTube is missing after a clean install
+
+- A built-in plugin that fails to install or load is no longer swallowed: the
+  reason is logged and the setup wizard retries the install once and shows the
+  reason if the plugin is still missing.
+- Settings > About > "Share app log": saves the app's recent log to Downloads
+  and opens the share sheet.
+
 ## 0.8.0-thor.1 — first TwinJay release
 
 - App renamed to TwinJay with a new launcher icon; most user-visible "Bluejay"

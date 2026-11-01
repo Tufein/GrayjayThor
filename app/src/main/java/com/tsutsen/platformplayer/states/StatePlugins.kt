@@ -277,6 +277,9 @@ class StatePlugins {
         }
         _isFirstEmbedUpdate = false;
     }
+    /** Why an embedded plugin (by id) could not be installed, for display and logs. */
+    val embeddedInstallErrors: MutableMap<String, String> = java.util.concurrent.ConcurrentHashMap()
+
     fun installMissingEmbeddedPlugins(context: Context) {
         val plugins = getPlugins();
         for(embedded in getEmbeddedSources(context)) {
@@ -316,11 +319,16 @@ class StatePlugins {
             else null;
 
             //config.version = config.version - 1;
-            createPlugin(config, script, icon, true);
+            val failure = createPlugin(config, script, icon, true);
+            if(failure != null)
+                throw failure;
+            embeddedInstallErrors.remove(config.id);
             return true;
         }
         catch(ex: Throwable) {
             Logger.e(TAG, "Exception installing embedded plugin", ex);
+            val key = id ?: assetConfigPath;
+            embeddedInstallErrors[key] = "${ex.javaClass.simpleName}: ${ex.message}";
             return false;
         }
     }
