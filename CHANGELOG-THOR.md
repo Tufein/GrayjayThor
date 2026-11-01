@@ -12,6 +12,9 @@
 - The log also shows ~8.5 s spent resolving the video before playback starts
   (BotGuard/PO token, cipher solve) inside the YouTube plugin; that part is not
   changed here.
+- Added a background warm-up: shortly after app start the YouTube plugin resolves
+  one tiny public video (jNQXAC9IVRw) so visitor data, cipher and PO token are
+  ready when the user presses play. Costs a few requests per app start.
 - Root cause found from a Thor playback log: for non-SABR (unmuxed progressive)
   streams, "Auto" quality loaded the first source the plugin listed, i.e. 2160p
   VP9, which a normal connection cannot sustain (playback stalled with ~50 ms
