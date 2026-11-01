@@ -1,7 +1,6 @@
 package com.tsutsen.platformplayer.activities
 
 import android.Manifest
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Configuration
@@ -10,10 +9,13 @@ import android.util.Log
 import android.hardware.display.DisplayManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Rational
 import android.view.Display
 import android.view.KeyEvent
 import android.view.MotionEvent
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -57,8 +59,10 @@ import com.tsutsen.platformplayer.feature.player.impl.PlayerView
 import com.tsutsen.platformplayer.feature.player.impl.SystemControls
 import com.tsutsen.platformplayer.states.StateApp
 import com.tsutsen.platformplayer.states.StateCasting
+import com.tsutsen.platformplayer.logging.Logger
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
@@ -115,6 +119,14 @@ class MainActivity :
     internal val pipActive = MutableStateFlow(false)
 
     private var companionPresentation: CompanionPresentation? = null
+    private var companionStarted = false
+    private var companionRetryJob: Job? = null
+    private val companionDisplays by lazy { checkNotNull(getSystemService(DisplayManager::class.java)) }
+    private val companionDisplayListener = object : DisplayManager.DisplayListener {
+        override fun onDisplayAdded(displayId: Int) = ensureCompanion()
+        override fun onDisplayRemoved(displayId: Int) = ensureCompanion()
+        override fun onDisplayChanged(displayId: Int) = ensureCompanion()
+    }
     private val resultLauncher =
         registerForActivityResult(
             androidx.activity.result.contract.ActivityResultContracts
@@ -165,6 +177,8 @@ class MainActivity :
     override fun onStart() {
         super.onStart()
         pipLog("onStart")
+        companionStarted = true
+        companionDisplays.registerDisplayListener(companionDisplayListener, Handler(Looper.getMainLooper()))
         // PiP UI state is deliberately NOT synced here: onStart fires
         // mid-expansion while the window size is still settling. The flip
         // happens in onResume, when the window is final, so the surface
@@ -174,17 +188,17 @@ class MainActivity :
         // transition when onStart fires (STATE_OFF), so retry a couple of
         // times — ensureCompanion() is a no-op once the presentation shows.
         ensureCompanion()
-        lifecycleScope.launch {
+        companionRetryJob?.cancel()
+        companionRetryJob = lifecycleScope.launch {
             for (delay in longArrayOf(2_500L, 6_000L)) {
                 delay(delay)
-                if (isFinishing || isDestroyed) return@launch
                 ensureCompanion()
             }
         }
     }
 
     internal fun ensureCompanion() {
-        if (isFinishing || isDestroyed) return
+        if (!companionStarted || isFinishing || isDestroyed) return
         // Never churn the companion window during a PiP transition:
         // dismiss/re-show races the system's PiP window reconfiguration
         // (WM input-channel disposal errors) and leaves the task in a
@@ -195,15 +209,15 @@ class MainActivity :
         val enabled = settingsRepository.preferences.value.dualScreen
         val display = rearDisplay()
         if (!enabled || display == null) {
-            companionPresentation?.dismiss()
-            companionPresentation = null
+            dismissCompanion()
             return
         }
         val current = companionPresentation
-        if (current != null && current.isShowing) return
-        current?.dismiss()
-        companionPresentation =
-            CompanionPresentation(
+        if (current != null && current.isShowing && current.display.displayId == display.displayId) return
+        dismissCompanion()
+        var candidate: CompanionPresentation? = null
+        try {
+            val presentation = CompanionPresentation(
                 context = this,
                 display = display,
                 playerRepository = playerRepository,
@@ -225,15 +239,48 @@ class MainActivity :
                 // Tapping the stats card opens the watch-stats detail on the
                 // main screen.
                 onWatchStats = { navigator.navigateWatchStatsDetail() },
-            ).also { it.show() }
+            )
+            candidate = presentation
+            presentation.setOnDismissListener {
+                if (companionPresentation === presentation) companionPresentation = null
+            }
+            companionPresentation = presentation
+            presentation.show()
+        } catch (error: RuntimeException) {
+            // Displays can disappear between selection and show(), and Android may
+            // revoke the window token while the activity is being stopped. A
+            // later display/focus event retries without interrupting playback.
+            if (error !is WindowManager.InvalidDisplayException &&
+                error !is WindowManager.BadTokenException && error !is SecurityException) throw error
+            companionPresentation = null
+            candidate?.dismiss()
+            Logger.w("CompanionDisplay", error) { "Could not open companion on display ${display.displayId}" }
+        }
     }
 
+    private fun dismissCompanion() {
+        val presentation = companionPresentation
+        companionPresentation = null
+        presentation?.dismiss()
+    }
+
+    @Suppress("DEPRECATION")
     private fun rearDisplay(): Display? {
-        val displayManager = getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
-        return displayManager.displays.firstOrNull {
-            it.displayId != Display.DEFAULT_DISPLAY && it.isValid &&
-                it.state == Display.STATE_ON
-        }
+        val displays = companionDisplays.displays
+        val selectedId = CompanionDisplayPolicy.select(
+            displays = displays.map {
+                CompanionDisplayPolicy.Screen(it.displayId, it.isValid,
+                    it.state == Display.STATE_ON, it.flags and Display.FLAG_PRIVATE != 0)
+            },
+            activityDisplayId = windowManager.defaultDisplay.displayId,
+            currentDisplayId = companionPresentation?.display?.displayId,
+        )
+        return displays.firstOrNull { it.displayId == selectedId }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        ensureCompanion()
     }
 
     override fun onResume() {
@@ -254,9 +301,8 @@ class MainActivity :
         if (Build.VERSION.SDK_INT < 30) return pipActive.value
         val wm = windowManager.currentWindowMetrics.bounds
         val real = DisplayMetrics()
-        (getSystemService(Context.DISPLAY_SERVICE) as DisplayManager)
-            .getDisplay(Display.DEFAULT_DISPLAY)
-            .getRealMetrics(real)
+        @Suppress("DEPRECATION")
+        windowManager.defaultDisplay.getRealMetrics(real)
         return wm.width() < real.widthPixels * 0.8f || wm.height() < real.heightPixels * 0.8f
     }
 
@@ -287,6 +333,7 @@ class MainActivity :
         pipLog("modeChanged($isInPipMode)")
         pipActive.value = isInPipMode
         if (!isInPipMode) {
+            ensureCompanion()
             // PiP closed: pause so the video doesn't keep playing after
             // its window is gone.
             if (playerRepository.playerState.value.isPlaying) {
@@ -296,12 +343,18 @@ class MainActivity :
     }
 
     override fun onStop() {
+        companionStarted = false
+        companionRetryJob?.cancel()
+        companionRetryJob = null
+        companionDisplays.unregisterDisplayListener(companionDisplayListener)
+        GamepadKeyBus.releasePressedInputs()
+        // A still-composed binding popup owns capture until its effect ends.
+        // Retaining that ownership also preserves binding after foreground return.
         super.onStop()
         pipLog("onStop")
         // The companion only makes sense while the app is in the
         // foreground — dismiss on minimize. onStart() re-asserts it.
-        companionPresentation?.dismiss()
-        companionPresentation = null
+        dismissCompanion()
         // Stopped while OUT of PiP: pause so the video doesn't keep
         // playing invisibly. Auto-enter PiP also stops the activity on
         // entry, but modeChanged(true) has set pipActive by then, so the
@@ -315,8 +368,10 @@ class MainActivity :
     }
 
     override fun onDestroy() {
-        companionPresentation?.dismiss()
-        companionPresentation = null
+        companionStarted = false
+        companionRetryJob?.cancel()
+        companionDisplays.unregisterDisplayListener(companionDisplayListener)
+        dismissCompanion()
         PipSurface.surfaceView.value = null
         pip.close()
         super.onDestroy()
@@ -335,13 +390,18 @@ class MainActivity :
 
     /**
      * Controller *analog* input (sticks, HAT d-pads) arrives as generic
-     * motion events with a gamepad/joystick source — never as touch events
-     * and (on most drivers) never as keys. Same capture/consume rules as
+     * motion events with a gamepad/joystick source and (on most drivers)
+     * never as keys. Same capture/consume rules as
      * [dispatchKeyEvent]; real touch input has no gamepad source and passes
      * through untouched.
      */
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean =
-        GamepadKeyBus.onMotionEvent(event) || super.dispatchGenericMotionEvent(event)
+        (CompanionInputPolicy.isNonPointerControllerSource(event.source) &&
+            GamepadKeyBus.onMotionEvent(event)) || super.dispatchGenericMotionEvent(event)
+
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean =
+        (CompanionInputPolicy.isNonPointerControllerSource(event.source) &&
+            GamepadKeyBus.onMotionEvent(event)) || super.dispatchTouchEvent(event)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

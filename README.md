@@ -1,47 +1,59 @@
+# Bluejay Thor
 
-# Bluejay Media App
-<div align="center">
- 
-<img width="2095" height="930" alt="Bluejay hero" src="https://github.com/user-attachments/assets/adbd35d8-6ec3-4dfe-adb8-759ea5311525" />
+An unofficial continuation of [Bluejay](https://github.com/tsutsen/bluejay) for
+Android handhelds with two screens, including the AYN Thor.
 
-<p></p>
-Follow your favorite creators! Now in dual screen.
+This project uses Bluejay's complete application: its Compose interface, source
+plugins, video player, downloads, library, themes, gestures and companion-screen
+dashboard. The original GrayjayThor checkout is retained separately as a reference;
+it is not the application built here.
 
-_Grab the app in [releases](https://github.com/tsutsen/bluejay/releases)_
+## What changes in this continuation
 
-</div>
+- **Ready for two screens:** the Thor flavor enables the companion screen and
+  controller support on a fresh installation. Both remain configurable.
+- **Recover after screen changes:** display connection, disconnection, sleep and
+  wake events refresh the companion. A stale display window is replaced safely.
+- **Respect the foreground:** pending retries cannot reopen the companion after
+  the app moves into the background.
+- **Release held controls:** backgrounding the app releases active controller
+  inputs, so a missed key-up cannot leave speed-hold or stick actions latched.
+- **Controller input on either screen:** the companion routes gamepad keys and
+  stick input to the same player controls as the main screen, while ordinary
+  touch and mouse input keep working normally.
+- **Separate installation:** `com.tufein.bluejay.thor` can coexist with the original
+  Bluejay and GrayjayThor applications.
+- **Separate app updates:** the Thor flavor does not download the original
+  Bluejay's APKs. Source-plugin updates remain available as before.
+- **Avoid inherited launch telemetry:** Thor builds do not send launch statistics
+  to the original project's telemetry service.
 
-## Features 
+The existing Bluejay interface and its light/dark themes, configurable dashboard,
+comments, queue, recommendations, playlists, home feed and controller mappings
+remain the basis of the app. In the Thor flavor both seek directions default to
+10 seconds, with START for play/pause and L1/R1 for seeking. Loading saved
+preferences preserves explicit user choices and controller mappings.
 
-This app is built around the [Grayjay](https://gitlab.futo.org/videostreaming/grayjay) core – the wonderful media aggregator. Bluejay relies on it to fetch data from YouTube, Twitch, BiliBili, Odyssey, and many other platforms.
+## Development build
 
-So, here, you can expect pretty much everything you see in Grayjay but with a modern sheen:
+The preview version is **0.7.1-thor.1**, based on upstream Bluejay **0.7.0** at
+`6a762681cf489aee20f744ae357e247c92ae4b5b`. This is an unofficial development
+build of this continuation, not an official Bluejay release.
 
-- **Browse** and **watch** videos from different **platforms**
-- Manage **playlists**
-- **Download** content for offline viewing
+Use the existing checkout. The Android SDK, a full JDK and Git LFS are required;
+toolchain versions are pinned in the repository. Reproducible dependency setup
+and build instructions are in [DEVELOPMENT.md](DEVELOPMENT.md).
 
-And there are some unique things as well:
+The Thor build creates arm64-v8a and x86_64 debug APKs. Install the arm64 APK on the
+Thor. A physical device check is still required before distributing a release.
+No successor release server or production signing key is configured.
 
-- **Second screen** of your Android device can now control playback, show stats, comments, queues, recommended videos, your pinned playlists, and home feed
-- Proper **landscape** mode support
-- Light and dark mode and custom color **themes**
-- Customizable **gesture** controls
-- Local watch **stats** tracking
+## Sources and attribution
 
-<div align="center">
-<img width="2095" height="1200" alt="Bluejay features" src="https://github.com/user-attachments/assets/d74d2026-06aa-42c0-861b-f9206c41aaf3" />
-</div>
+Bluejay is developed by tsutsen and builds on [FUTO's Grayjay](https://gitlab.futo.org/videostreaming/grayjay).
+Their notices and the [original license](LICENSE.md) remain in this source tree.
+The [upstream README](UPSTREAM-README.md) preserves the original project description,
+features and screenshots. This continuation is not an official FUTO or Bluejay product.
 
-## Roadmap
-> [!NOTE]
-> Bluejay is in beta, so things might still break, misbehave, and look quite ugly in the darkest corners of the app. 
-
-Besides basic quality-of-life, stability, performance, and prettification updates, I have two major additions planned, to bring Bluejay close to being an _ultimate media aggregator_:
-
-- Local media management update
-- Music update
-
-## LLM use disclosure
-
-While key decision were taken by me, the code was largely written by local Qwen 3.6 and Qwen 3.8 language models.
+The source history is retained. See [CHANGELOG-THOR.md](CHANGELOG-THOR.md) for the
+changes and validation of this continuation.

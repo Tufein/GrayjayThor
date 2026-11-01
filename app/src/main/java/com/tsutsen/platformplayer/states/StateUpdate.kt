@@ -76,6 +76,11 @@ class StateUpdate {
     }
 
     fun seedUiFromDisk(context: Context) {
+        if (BuildConfig.IS_THOR_BUILD) {
+            // Cached upstream APKs cannot update the successor's application ID.
+            clearUi()
+            return
+        }
         if (uiState != UpdateUiState.NONE) return
         try {
             val dir = File(context.filesDir, "updates")
@@ -107,6 +112,12 @@ class StateUpdate {
     }
 
     suspend fun checkForUpdates(context: Context, showUpToDateToast: Boolean, hideExceptionButtons: Boolean = false) = withContext(Dispatchers.IO) {
+        if (BuildConfig.IS_THOR_BUILD) {
+            if (showUpToDateToast) withContext(Dispatchers.Main) {
+                UIDialogs.toast(context, "Bluejay Thor updates are installed manually; source plugins update as usual.")
+            }
+            return@withContext
+        }
         try {
             val client = ManagedHttpClient();
             val latestVersion = downloadVersionCode(client);
@@ -148,6 +159,7 @@ class StateUpdate {
     }
 
     fun downloadVersionCode(client: ManagedHttpClient): Int? {
+        if (BuildConfig.IS_THOR_BUILD) return null
         val response = client.get(VERSION_URL);
         if (!response.isOk || response.body == null) {
             return null;
@@ -157,6 +169,7 @@ class StateUpdate {
     }
 
     fun downloadChangelog(client: ManagedHttpClient, version: Int): String? {
+        if (BuildConfig.IS_THOR_BUILD) return null
         val response = client.get("${CHANGELOG_BASE_URL}/${version}");
         if (!response.isOk || response.body == null) {
             return null;
@@ -192,10 +205,15 @@ class StateUpdate {
         } else {
             "https://rel.bluejay.app/version.txt"
         }
-        fun getApkUrl(version: Int): String = if (BuildConfig.IS_UNSTABLE_BUILD) {
-            "https://rel.bluejay.app/$version/app-$DESIRED_ABI-release-unstable.apk"
-        } else {
-            "https://rel.bluejay.app/$version/app-$DESIRED_ABI-release.apk"
+        fun getApkUrl(version: Int): String {
+            check(!BuildConfig.IS_THOR_BUILD) {
+                "Bluejay Thor has no configured app update feed; install successor updates manually."
+            }
+            return if (BuildConfig.IS_UNSTABLE_BUILD) {
+                "https://rel.bluejay.app/$version/app-$DESIRED_ABI-release-unstable.apk"
+            } else {
+                "https://rel.bluejay.app/$version/app-$DESIRED_ABI-release.apk"
+            }
         }
         val CHANGELOG_BASE_URL = "https://rel.bluejay.app/changelogs";
 

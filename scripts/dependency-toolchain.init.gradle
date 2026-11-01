@@ -1,0 +1,16 @@
+// The original dependency sources remain at published FUTO revisions. Their
+// plugin versions are aligned here with Bluejay's toolchain, including composite
+// builds, instead of depending on unpublished toolchain-only submodule commits.
+System.setProperty('org.gradle.project.android.builtInKotlin', 'false')
+System.setProperty('org.gradle.project.android.newDsl', 'false')
+beforeSettings { settings ->
+    settings.pluginManagement.resolutionStrategy.eachPlugin {
+        if (requested.id.id in ['com.android.application', 'com.android.library']) {
+            useVersion('9.2.1')
+        } else if (requested.id.id.startsWith('org.jetbrains.kotlin.')) {
+            useVersion('2.4.0')
+        } else if (requested.id.id == 'com.google.protobuf') {
+            useVersion('0.10.0')
+        }
+    }
+}

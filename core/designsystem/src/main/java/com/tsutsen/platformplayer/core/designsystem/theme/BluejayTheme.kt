@@ -1,6 +1,8 @@
 package com.tsutsen.platformplayer.core.designsystem.theme
 
 import android.app.Activity
+import android.content.Context
+import android.os.Build
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.tween
@@ -15,10 +17,28 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.core.view.WindowCompat
 
-private val DefaultColorScheme = lightColorScheme()
-private val DarkColorSchemeCustom = darkColorScheme()
+/**
+ * Resolves the same scheme for the activity and companion display.
+ *
+ * Material You needs Android 12's system accent palettes. Calling its color
+ * readers on Android 9-11 resolves missing palette attributes to zero, making
+ * primary controls and their content the same transparent/black color.
+ */
+fun resolveBluejayColorScheme(
+    context: Context,
+    darkTheme: Boolean,
+    dynamicColor: Boolean,
+    colorScheme: ColorScheme? = null,
+): ColorScheme =
+    colorScheme
+        ?: if (dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        } else {
+            if (darkTheme) DarkColorScheme else LightColorScheme
+        }
 
 /**
  * M3's expressive scheme, except the default effects spec never overshoots.
@@ -66,14 +86,10 @@ fun BluejayTheme(
         BluejayTokens(radius = RadiusScale.fromRounding(uiRounding))
     }
     val view = LocalView.current
-    val resolvedScheme =
-        colorScheme
-            ?: if (dynamicColor) {
-                if (darkTheme) dynamicDarkColorScheme(view.context)
-                else dynamicLightColorScheme(view.context)
-            } else {
-                if (darkTheme) DarkColorSchemeCustom else DefaultColorScheme
-            }
+    val configuration = LocalConfiguration.current
+    val resolvedScheme = remember(view.context, configuration, darkTheme, dynamicColor, colorScheme) {
+        resolveBluejayColorScheme(view.context, darkTheme, dynamicColor, colorScheme)
+    }
     if (!view.isInEditMode) {
         SideEffect {
             // The context is not an Activity when the UI is hosted in a

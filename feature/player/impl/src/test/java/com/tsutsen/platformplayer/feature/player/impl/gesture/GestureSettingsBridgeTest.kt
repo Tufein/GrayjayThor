@@ -69,16 +69,16 @@ class GestureSettingsBridgeTest {
     @Test
     fun emptySlotSetYieldsCanonicalDefaults() {
         val configs = buildGestureConfigs(PlayerGesturePreferences())
-        // normal mode: v-swipe is the direction-aware morph everywhere
-        // except the bottom-center column.
-        assertEquals(
-            GestureAction.MORPH_VERTICAL,
-            configs.normal.resolve(GestureSector.MIDDLE_LEFT, GestureType.SWIPE_VERTICAL),
-        )
-        assertEquals(
-            GestureAction.NONE,
-            configs.normal.resolve(GestureSector.BOTTOM_CENTER, GestureType.SWIPE_VERTICAL),
-        )
+        // Upstream ebab6e1f intentionally removed the bottom-center exception:
+        // normal mode now uses direction-aware morph in every sector.
+        for (sector in GestureSector.entries) {
+            assertEquals(
+                "Normal vertical swipe in $sector",
+                GestureAction.MORPH_VERTICAL,
+                configs.normal.resolve(sector, GestureType.SWIPE_VERTICAL),
+            )
+        }
+        assertEquals(configs.normal, configs.compact)
         // fullscreen: sides are brightness/volume
         assertEquals(
             GestureAction.BRIGHTNESS,
@@ -88,6 +88,28 @@ class GestureSettingsBridgeTest {
             GestureAction.VOLUME,
             configs.fullscreen.resolve(GestureSector.MIDDLE_RIGHT, GestureType.SWIPE_VERTICAL),
         )
+        assertEquals(
+            GestureAction.NONE,
+            configs.fullscreen.resolve(GestureSector.BOTTOM_CENTER, GestureType.SWIPE_VERTICAL),
+        )
+    }
+
+    @Test
+    fun explicitNoneOverridesTheBottomCenterMorphDefault() {
+        val prefs = PlayerGesturePreferences(
+            normal = PlayerGestureSlotSet(bottomCenter = mapOf("swipe_v" to PlayerGestures.NONE)),
+        )
+        val configs = buildGestureConfigs(prefs)
+        // An explicit empty action disables both sectors belonging to this
+        // slot. An absent assignment in another slot still uses its default.
+        for (sector in listOf(GestureSector.MIDDLE_CENTER, GestureSector.BOTTOM_CENTER)) {
+            assertEquals(GestureAction.NONE, configs.normal.resolve(sector, GestureType.SWIPE_VERTICAL))
+        }
+        assertEquals(
+            GestureAction.MORPH_VERTICAL,
+            configs.normal.resolve(GestureSector.MIDDLE_LEFT, GestureType.SWIPE_VERTICAL),
+        )
+        assertEquals(configs.normal, configs.compact)
     }
 
     @Test

@@ -71,6 +71,25 @@ object GamepadKeyBus {
     fun consumeIfPlayer(event: GamepadEvent): Boolean =
         playerHandler?.invoke(event) ?: false
 
+    /**
+     * End held actions when the app stops and Android may never deliver key-up
+     * or a stick's return to center. Reset before notifying listeners so a
+     * resumed press of the same key/direction is accepted as a new edge.
+     * Capture ownership is unchanged; callers ending capture should also call
+     * [endCapture]. Like the other input entry points, call on the main thread.
+     */
+    fun releasePressedInputs() {
+        val releases = pressedKeys.values.map { it.copy(isPress = false) }
+        pressedKeys.clear()
+        axisState.clear()
+        for (edge in releases) {
+            _events.tryEmit(edge)
+            // A held player action must end even if binding capture started
+            // after the original press (for example a speed-hold shortcut).
+            consumeIfPlayer(edge)
+        }
+    }
+
     // -----------------------------------------------------------------
     // Activity entry points (main thread only)
     // -----------------------------------------------------------------
@@ -109,7 +128,9 @@ object GamepadKeyBus {
         var consumed = false
         for (axis in AXIS_KEYS) {
             for (edge in axisEdges(deviceId, axis, event.getAxisValue(axis), name)) {
-                if (!capturing) consumed = consumed || consumeIfPlayer(edge)
+                // Every edge must reach the handler, including the new press
+                // after a handled release when a stick reverses direction.
+                if (!capturing) consumed = consumeIfPlayer(edge) || consumed
             }
         }
         return if (capturing) true else consumed
@@ -141,7 +162,7 @@ object GamepadKeyBus {
     private const val RELEASE = 0.2f
 
     /** Logical keys currently pressed, keyed by (deviceId, keyCode). */
-    private val pressedKeys = HashSet<Long>()
+    private val pressedKeys = HashMap<Long, GamepadEvent>()
     /** Currently held direction per (deviceId, axis); 0 = none. */
     private val axisState = HashMap<Long, Int>()
 
@@ -154,14 +175,12 @@ object GamepadKeyBus {
         val id = (deviceId.toLong() shl 32) or (keyCode.toLong() and 0xFFFFFFFFL)
         val edge =
             when {
-                isPress && !pressedKeys.contains(id) -> {
-                    pressedKeys.add(id)
-                    GamepadEvent(keyCode, name, isPress = true)
+                isPress && !pressedKeys.containsKey(id) -> {
+                    GamepadEvent(keyCode, name, isPress = true).also { pressedKeys[id] = it }
                 }
 
-                !isPress && pressedKeys.contains(id) -> {
-                    pressedKeys.remove(id)
-                    GamepadEvent(keyCode, name, isPress = false)
+                !isPress && pressedKeys.containsKey(id) -> {
+                    pressedKeys.remove(id)!!.copy(isPress = false)
                 }
 
                 else -> null

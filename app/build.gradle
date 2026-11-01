@@ -15,7 +15,10 @@ ext {
     // reachable from dev) even after 0.3.0 shipped.
     def git = { String cmd -> cmd.execute(null, rootProject.projectDir).text.trim() }
     def tagList = git('git tag --sort=-v:refname').readLines()
-    def latestTag = (tagList && tagList[0].matches(/v\d+\.\d+\.\d+/)) ? tagList[0] : ''
+    // The successor repository also retains older GrayjayThor release tags.
+    // Select an actual Bluejay semver tag rather than letting a higher legacy
+    // tag such as v396-thor.0.2.0 turn version detection into 'unversioned'.
+    def latestTag = tagList.find { it.matches(/v\d+\.\d+\.\d+/) } ?: ''
     if (latestTag.isEmpty()) {
         gitVersionName = 'unversioned'
     } else {
@@ -59,6 +62,17 @@ android {
     compileSdk 37
     flavorDimensions "buildType"
     productFlavors {
+        thor {
+            dimension "buildType"
+            applicationId "com.tufein.bluejay.thor"
+            versionCode 7001
+            versionName "0.7.1-thor.1"
+            buildConfigField "boolean", "IS_THOR_BUILD", "true"
+            buildConfigField "boolean", "IS_UNSTABLE_BUILD", "false"
+            buildConfigField "boolean", "IS_PLAYSTORE_BUILD", "false"
+            resValue "string", "app_name", "Bluejay Thor (unofficial)"
+            resValue "string", "authority", "com.tufein.bluejay.thor"
+        }
         stable {
             dimension "buildType"
             applicationId "com.tsutsen.platformplayer"
@@ -87,6 +101,10 @@ android {
     }
 
     defaultConfig {
+        buildConfigField "boolean", "IS_THOR_BUILD", "false"
+        // Plugin capability version follows the inherited Grayjay engine,
+        // not the successor's semver-based APK version code (7001).
+        buildConfigField "int", "ENGINE_COMPAT_VERSION", "389"
         minSdk 28
         targetSdk 36
         versionCode gitVersionCode
@@ -130,14 +148,23 @@ android {
             enable true
             reset()
 
-            include "x86", "x86_64", "arm64-v8a", "armeabi-v7a"
-            universalApk true
+            def requestedAbis = project.findProperty('targetAbis')
+            if (requestedAbis) {
+                include(*requestedAbis.split(','))
+            } else {
+                include "x86", "x86_64", "arm64-v8a", "armeabi-v7a"
+            }
+            universalApk !requestedAbis
         }
     }
     buildFeatures {
         buildConfig true
     }
     sourceSets {
+        thor {
+            assets.srcDirs = ['src/stable/assets']
+            res.srcDirs = ['src/thor/res', 'src/stable/res']
+        }
         main {
             jniLibs.srcDirs = ['src/main/jniLibs']
             assets {

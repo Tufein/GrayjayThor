@@ -26,7 +26,7 @@ includeBuild('dep/futopay/android') {
     }
 }
 
-rootProject.name = "FutoVideo"
+rootProject.name = "BluejayThor"
 include ':app'
 
 // Core modules

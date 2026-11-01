@@ -593,7 +593,7 @@ class StateApp {
 
 
         Logger.i(TAG, "MainApp Starting: Initializing [Telemetry]");
-        if (!BuildConfig.DEBUG) {
+        if (!BuildConfig.DEBUG && !BuildConfig.IS_THOR_BUILD) {
             StateTelemetry.instance.initialize();
             StateTelemetry.instance.upload();
         }

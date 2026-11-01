@@ -66,14 +66,15 @@ class PackageBridge : V8Package {
 
     @V8Property
     fun buildVersion(): Int {
-        //If debug build, assume max version
-        if(BuildConfig.VERSION_CODE == 1)
-            return Int.MAX_VALUE;
-        return BuildConfig.VERSION_CODE;
+        return PluginAppIdentity.buildVersion(
+            BuildConfig.VERSION_CODE,
+            BuildConfig.IS_THOR_BUILD,
+            BuildConfig.ENGINE_COMPAT_VERSION,
+        )
     }
     @V8Property
     fun buildFlavor(): String {
-        return BuildConfig.FLAVOR;
+        return PluginAppIdentity.buildFlavor(BuildConfig.FLAVOR, BuildConfig.IS_THOR_BUILD)
     }
     @V8Property
     fun buildSpecVersion(): Int {

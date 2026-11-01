@@ -4,6 +4,8 @@ import android.app.Presentation
 import android.content.Context
 import android.os.Bundle
 import android.view.Display
+import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.ViewGroup
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -23,6 +25,7 @@ import com.tsutsen.platformplayer.core.data.repository.SettingsRepository
 import com.tsutsen.platformplayer.core.datastore.model.ThemeMode
 import com.tsutsen.platformplayer.core.designsystem.theme.BluejayTheme
 import com.tsutsen.platformplayer.core.designsystem.theme.ThemeEngine
+import com.tsutsen.platformplayer.core.ui.GamepadKeyBus
 import com.tsutsen.platformplayer.feature.player.impl.HistoryTracker
 import com.tsutsen.platformplayer.logging.Logger
 import java.lang.reflect.Proxy
@@ -65,6 +68,22 @@ class CompanionPresentation(
     private val onPlaylistClick: (String) -> Unit,
     private val onWatchStats: () -> Unit,
 ) : Presentation(context, display) {
+    private var companionComposeView: ComposeView? = null
+
+    // A Presentation has its own focused window: input delivered here never
+    // reaches MainActivity. Use the same bus so controller mappings and binding
+    // capture continue to work after the user touches the second screen.
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean =
+        GamepadKeyBus.onKeyEvent(event) || super.dispatchKeyEvent(event)
+
+    override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean =
+        (CompanionInputPolicy.isNonPointerControllerSource(event.source) &&
+            GamepadKeyBus.onMotionEvent(event)) || super.dispatchGenericMotionEvent(event)
+
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean =
+        (CompanionInputPolicy.isNonPointerControllerSource(event.source) &&
+            GamepadKeyBus.onMotionEvent(event)) || super.dispatchTouchEvent(event)
+
     @OptIn(ExperimentalFoundationApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -73,6 +92,7 @@ class CompanionPresentation(
         // a Presentation window.
         @Suppress("DEPRECATION")
         val composeView = ComposeView(context)
+        companionComposeView = composeView
         // A Presentation window carries no ViewTreeLifecycleOwner (unlike an
         // activity window), but Compose requires one in the hierarchy — bind
         // the owning activity's lifecycle (always present: MainActivity
@@ -152,6 +172,14 @@ class CompanionPresentation(
                 )
             }
         }
+    }
+
+    override fun onStop() {
+        // The Compose tree uses the activity's lifecycle, which can remain
+        // resumed after only this window is dismissed or its display disappears.
+        // End its flow collectors and other composition effects immediately.
+        companionComposeView?.disposeComposition()
+        super.onStop()
     }
 
     /**

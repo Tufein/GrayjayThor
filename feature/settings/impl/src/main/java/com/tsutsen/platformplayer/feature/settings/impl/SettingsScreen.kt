@@ -1694,6 +1694,9 @@ private fun BackupTile(
 private fun AboutItems(viewModel: SettingsViewModel) {
     val context = LocalContext.current
     val scheme = MaterialTheme.colorScheme
+    val applicationLabel = remember(context) {
+        context.applicationInfo.loadLabel(context.packageManager).toString()
+    }
     // The feature module has no BuildConfig of its own (versionName is set
     // on the app module) — read it from the package manager instead.
     val version =
@@ -1739,7 +1742,7 @@ private fun AboutItems(viewModel: SettingsViewModel) {
                 Spacer(Modifier.width(Tokens.SpaceLg))
                 Column {
                     Text(
-                        text = "Bluejay",
+                        text = applicationLabel,
                         style = MaterialTheme.typography.titleLarge,
                         color = scheme.onSurface,
                     )
@@ -1750,6 +1753,15 @@ private fun AboutItems(viewModel: SettingsViewModel) {
                     )
                 }
             }
+        }
+
+        if (context.packageName == "com.tufein.bluejay.thor") {
+            Text(
+                text = "$applicationLabel is an unofficial continuation of Bluejay by tsutsen. " +
+                    "App updates are installed manually; source plugins keep their normal updates.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = scheme.onSurfaceVariant,
+            )
         }
 
         Text(
@@ -1778,10 +1790,10 @@ private fun AboutItems(viewModel: SettingsViewModel) {
             )
             SettingsOptionCard(
                 icon = Icons.Filled.Code,
-                title = "GitHub",
-                subtitle = "Source code, issues, feature requests",
+                title = "Bluejay source",
+                subtitle = "Original application by tsutsen",
                 onClick = {
-                    openUrl(context, "https://github.com/tsutsen-org/bluejay-android")
+                    openUrl(context, "https://github.com/tsutsen/bluejay")
                 },
                 groupPosition = GroupPosition.Middle,
             )
@@ -1792,7 +1804,7 @@ private fun AboutItems(viewModel: SettingsViewModel) {
                 onClick = {
                     openUrl(
                         context,
-                        "https://github.com/tsutsen-org/bluejay-android/blob/master/LICENSE.md",
+                        "https://github.com/tsutsen/bluejay/blob/master/LICENSE.md",
                     )
                 },
                 groupPosition = GroupPosition.Last,

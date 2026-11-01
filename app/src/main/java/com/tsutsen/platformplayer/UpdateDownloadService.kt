@@ -44,6 +44,13 @@ class UpdateDownloadService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (BuildConfig.IS_THOR_BUILD) {
+            // This successor has a different package/signing identity from Bluejay.
+            // Old jobs or explicit intents must not download the upstream app.
+            StateUpdate.instance.clearUi()
+            stopSelf()
+            return START_NOT_STICKY
+        }
         if (intent == null) {
             stopSelf()
             return START_NOT_STICKY

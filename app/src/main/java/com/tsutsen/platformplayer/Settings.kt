@@ -1,9 +1,11 @@
 package com.tsutsen.platformplayer
 
 import android.content.Context
+import android.view.KeyEvent
 import com.tsutsen.platformplayer.core.data.repository.impl.LibraryRepositoryImpl
 import com.tsutsen.platformplayer.core.datastore.model.ControllerBinding
 import com.tsutsen.platformplayer.core.datastore.model.CustomTheme
+import com.tsutsen.platformplayer.core.model.PlayerControllerActions
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.descriptors.PrimitiveKind
@@ -113,7 +115,7 @@ class Settings {
         )
 
     // Second (rear) display companion window
-    var dualScreen: Boolean = false
+    var dualScreen: Boolean = BuildConfig.IS_THOR_BUILD
     var dualScreenPages: List<String> = listOf("dash", "video", "library", "home")
     var dualScreenVideoTabs: List<String> =
         listOf("info", "controls", "comments", "chapters", "recommended", "queue", "dot")
@@ -142,10 +144,14 @@ class Settings {
 
     @Serializable
     class ControllerSettings(
-        var enabled: Boolean = false,
-        var mappings: Map<String, ControllerBinding> = emptyMap(),
+        var enabled: Boolean = BuildConfig.IS_THOR_BUILD,
+        var mappings: Map<String, ControllerBinding> = if (BuildConfig.IS_THOR_BUILD) mapOf(
+            PlayerControllerActions.PLAY_PAUSE to ControllerBinding(KeyEvent.KEYCODE_BUTTON_START),
+            PlayerControllerActions.SEEK_BACK to ControllerBinding(KeyEvent.KEYCODE_BUTTON_L1),
+            PlayerControllerActions.SEEK_FORWARD to ControllerBinding(KeyEvent.KEYCODE_BUTTON_R1),
+        ) else emptyMap(),
         var seekBackSeconds: Int = 10,
-        var seekForwardSeconds: Int = 30,
+        var seekForwardSeconds: Int = if (BuildConfig.IS_THOR_BUILD) 10 else 30,
     )
     // Second-screen library: the four 2x2 slots. Each entry is a section id
     // or a "playlist:<id>" reference (see Settings > Dual screen).
@@ -175,7 +181,9 @@ class Settings {
     class AutoUpdateSettings {
         var shouldBackgroundDownload: Boolean = true
 
-        fun isAutoUpdateEnabled(): Boolean = true
+        // Upstream APKs have a different application ID and signing identity.
+        // Source plugins keep their independent automatic updates.
+        fun isAutoUpdateEnabled(): Boolean = !BuildConfig.IS_THOR_BUILD
     }
 
     @Serializable

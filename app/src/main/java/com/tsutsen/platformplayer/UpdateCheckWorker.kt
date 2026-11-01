@@ -14,7 +14,7 @@ import kotlinx.coroutines.withContext
 class UpdateCheckWorker(appContext: Context, workerParams: WorkerParameters) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
-        if (!Settings.instance.autoUpdate.isAutoUpdateEnabled()) {
+        if (BuildConfig.IS_THOR_BUILD || !Settings.instance.autoUpdate.isAutoUpdateEnabled()) {
             Logger.i(TAG, "Auto-update disabled, skipping worker run")
             return Result.success()
         }
