@@ -33,6 +33,7 @@ import com.tsutsen.platformplayer.core.datastore.model.ControllerPreferences
 import com.tsutsen.platformplayer.core.model.PlayerControllerActions
 import com.tsutsen.platformplayer.core.model.WatchState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -53,14 +54,6 @@ private const val HISTORY_SAVE_INTERVAL_MS = 5_000L
 /**
  * MVI state for the Video Player screen.
  */
-/** Speed clamp for controller speed-up/down (same range the gesture steps use). */
-private const val MIN_SPEED = 0.25f
-private const val MAX_SPEED = 4f
-
-/** Action ids that exist now — bindings saved for removed/renamed actions
- * (e.g. the old combined "speed" action) must not shadow their keycode. */
-private val KNOWN_ACTION_IDS = PlayerControllerActions.ALL.mapTo(HashSet()) { it.id }
-
 sealed interface PlayerUiState {
     data class Loaded(
         val isPlaying: Boolean,
@@ -152,11 +145,12 @@ class PlayerViewModel
         /** Job running live chat start for the current video. */
         @Volatile
         private var liveChatJob: Job? = null
+        private var liveChatUrl: String? = null
+        private var liveChatInitialized = false
 
-        /** Speed in effect before a controller speed-hold started (restored
-         *  on release). Class-level: the speed action handler is local to
-         *  [onLoad] but [close] must be able to reset a stuck hold. */
-        private var speedBeforeHold: Float? = null
+        private val controllerSpeedHold = ControllerSpeedHold()
+        private var commentPageJob: Job? = null
+        private var commentPageUrl: String? = null
 
         /** Per-slot gesture assignments (Settings > Gestures); live flow.
          *  The player surface builds its gesture configs from this on (re)composition. */
@@ -180,6 +174,9 @@ class PlayerViewModel
             // bottom padding).
             viewModelScope.launch {
                 settingsRepository.preferences.collect { prefs ->
+                    if (!prefs.controller.enabled) {
+                        controllerSpeedHold.cancel()?.let { applyPlaybackSpeed(it) }
+                    }
                     SubtitleStyle.applyPreferences(
                         font = prefs.subtitle.font,
                         size = prefs.subtitle.size,
@@ -368,6 +365,11 @@ class PlayerViewModel
             viewModelScope.launch {
                 playerRepository.playerState
                     .collect { playerState ->
+                        if (commentPageUrl != playerState.currentVideo?.url) {
+                            commentPageJob?.cancel()
+                            commentPageJob = null
+                            commentPageUrl = null
+                        }
                         // The ticker fires 10×/s with only the position changed. Route
                         // that into a dedicated flow and skip the rebuild below unless
                         // something else changed — otherwise every tick would re-emit a
@@ -451,15 +453,16 @@ class PlayerViewModel
                         val liveVideo =
                             playerState.currentVideo
                                 ?.takeIf { it.contentType == ContentType.LIVE }
-                        if (liveVideo != null) {
+                        if (!liveChatInitialized || liveChatUrl != liveVideo?.url) {
+                            liveChatInitialized = true
+                            liveChatUrl = liveVideo?.url
                             liveChatJob?.cancel()
-                            liveChatJob =
-                                viewModelScope.launch {
-                                    liveChatRepository.start(liveVideo.url)
-                                }
-                        } else {
-                            liveChatJob?.cancel()
-                            liveChatRepository.stop()
+                            liveChatJob = if (liveVideo != null) {
+                                viewModelScope.launch { liveChatRepository.start(liveVideo.url) }
+                            } else {
+                                liveChatRepository.stop()
+                                null
+                            }
                         }
 
                         // Track playback history. The player's real duration
@@ -669,7 +672,7 @@ class PlayerViewModel
         /** Seek to [positionMs], clamped to the current video's duration. */
         fun seekToClamped(positionMs: Long) {
             val duration = playerRepository.playerState.value.durationMs
-            val target = if (duration > 0) positionMs.coerceIn(0, duration - 500) else positionMs.coerceAtLeast(0)
+            val target = PlayerSeekBounds.clamp(positionMs, duration, endPaddingMs = 500)
             seekTo(target)
         }
 
@@ -741,26 +744,24 @@ class PlayerViewModel
         }
 
         fun loadMoreComments(contentUrl: String) {
-            viewModelScope.launch {
-                // Guard: a faster switch to a new video supersedes this request.
-                if (playerRepository.playerState.value.currentVideo
-                        ?.url != contentUrl
-                ) {
-                    return@launch
-                }
+            if (playerRepository.playerState.value.currentVideo?.url != contentUrl) return
+            if (commentPageUrl == contentUrl && commentPageJob?.isActive == true) return
+            commentPageJob?.cancel()
+            commentPageUrl = contentUrl
+            commentPageJob = viewModelScope.launch {
                 try {
-                    val moreComments =
-                        withContext(Dispatchers.IO) {
-                            commentRepository.loadMoreComments(contentUrl)
-                        }
-
-                    if (moreComments.isNotEmpty()) {
-                        val current = playerRepository.playerState.value
-                        playerRepository.setVideoExtras(
-                            current.comments + moreComments,
-                            current.recommendations,
-                        )
+                    val moreComments = withContext(Dispatchers.IO) {
+                        commentRepository.loadMoreComments(contentUrl)
                     }
+                    // The video may change while the plugin loads the page.
+                    // Never append an old video's results to the new session.
+                    val current = playerRepository.playerState.value
+                    if (current.currentVideo?.url != contentUrl) return@launch
+                    if (moreComments.isNotEmpty()) {
+                        playerRepository.setVideoExtras(current.comments + moreComments, current.recommendations)
+                    }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
                 } catch (e: Exception) {
                     android.util.Log.e("PlayerViewModel", "Failed to load more comments", e)
                 }
@@ -789,12 +790,18 @@ class PlayerViewModel
             }
         }
 
-        /** Seek relative to current ExoPlayer position (avoids stale UI state). */
+        /** Seek from the local player's precise position, or the remote playback state. */
         fun seekBy(deltaMs: Long) {
-            val current = playerRepository.exoPlayer?.currentPosition ?: return
+            val state = playerRepository.playerState.value
+            // Cast playback has no active local ExoPlayer. Its shared state is
+            // authoritative; for local media prefer the player's precise position.
+            val local = if (state.isCasting) null else playerRepository.exoPlayer
+            if (local == null && state.currentVideo == null && !state.isCasting) return
+            val current = local?.currentPosition ?: state.currentPositionMs
+            val duration = local?.duration ?: state.durationMs
             PlayerEventBus.emit(PlayerEvent.Seek(deltaMs))
             viewModelScope.launch {
-                playerRepository.seekTo((current + deltaMs).coerceIn(0, playerRepository.exoPlayer?.duration ?: Long.MAX_VALUE))
+                playerRepository.seekTo(PlayerSeekBounds.relative(current, deltaMs, duration))
             }
         }
 
@@ -816,6 +823,12 @@ class PlayerViewModel
         }
 
         fun setPlaybackSpeed(speed: Float) {
+            // A deliberate speed selection replaces any temporary controller hold.
+            controllerSpeedHold.cancel()
+            applyPlaybackSpeed(speed)
+        }
+
+        private fun applyPlaybackSpeed(speed: Float) {
             PlayerEventBus.emit(PlayerEvent.PlaybackSpeedChanged(speed))
             viewModelScope.launch {
                 playerRepository.setPlaybackSpeed(speed)
@@ -855,39 +868,30 @@ class PlayerViewModel
          *
          * Speed actions are *hold* actions: while held, playback runs at
          * the *current* speed multiplied by 2 (up) / divided by 2 (down),
-         * clamped to [MIN_SPEED]..[MAX_SPEED]; releasing restores the speed
+         * clamped to 0.25×..4×; releasing restores the speed
          * from before the hold. All other actions fire on press only.
          *
          * @return true when the key is mapped (press *and* release are
          *   consumed so they don't leak to system handling).
          */
         fun handleControllerKey(event: GamepadKeyBus.GamepadEvent): Boolean {
+            // Releases must restore a hold even after remapping or disabling the
+            // controller, and while the next video is still loading.
+            if (!event.isPress) {
+                controllerSpeedHold.release(event.deviceId, event.keyCode)?.let {
+                    applyPlaybackSpeed(it)
+                    return true
+                }
+            }
             val prefs = controllerPrefs.value
             if (!prefs.enabled) return false
-            val action =
-                prefs.mappings.entries.firstOrNull {
-                    it.key in KNOWN_ACTION_IDS && it.value.keyCode == event.keyCode
-                }?.key
-                    ?: PlayerControllerActions.ALL.firstOrNull { it.defaultKeyCode == event.keyCode }?.id
-                    ?: return false
+            val action = ControllerBindings.actionFor(event.keyCode, prefs) ?: return false
             val state = _uiState.value as? PlayerUiState.Loaded ?: return false
             when (action) {
-                PlayerControllerActions.SPEED_UP ->
+                PlayerControllerActions.SPEED_UP, PlayerControllerActions.SPEED_DOWN ->
                     if (event.isPress) {
-                        if (speedBeforeHold == null) speedBeforeHold = state.playbackSpeed
-                        setPlaybackSpeed((state.playbackSpeed * 2f).coerceIn(MIN_SPEED, MAX_SPEED))
-                    } else {
-                        speedBeforeHold?.let { setPlaybackSpeed(it) }
-                        speedBeforeHold = null
-                    }
-
-                PlayerControllerActions.SPEED_DOWN ->
-                    if (event.isPress) {
-                        if (speedBeforeHold == null) speedBeforeHold = state.playbackSpeed
-                        setPlaybackSpeed((state.playbackSpeed / 2f).coerceIn(MIN_SPEED, MAX_SPEED))
-                    } else {
-                        speedBeforeHold?.let { setPlaybackSpeed(it) }
-                        speedBeforeHold = null
+                        controllerSpeedHold.press(event.deviceId, event.keyCode, action,
+                            playerRepository.playerState.value.playbackSpeed)?.let { applyPlaybackSpeed(it) }
                     }
 
                 else ->
@@ -955,7 +959,10 @@ class PlayerViewModel
         }
 
         fun close() {
-            speedBeforeHold = null
+            commentPageJob?.cancel()
+            commentPageJob = null
+            commentPageUrl = null
+            controllerSpeedHold.cancel()?.let { applyPlaybackSpeed(it) }
             PlayerEventBus.emit(PlayerEvent.Closed)
             // A closed player session consumes the current video — drop it
             // from the queue so it doesn't linger at the head afterwards.

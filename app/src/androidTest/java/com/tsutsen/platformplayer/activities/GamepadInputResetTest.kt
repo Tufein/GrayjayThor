@@ -92,16 +92,53 @@ class GamepadInputResetTest {
         }
     }
 
-    private fun axisMotion(x: Float): MotionEvent {
+    @Test fun disconnectReleasesOnlyTheRemovedControllersKeys() = onInputBus {
+        val edges = mutableListOf<GamepadKeyBus.GamepadEvent>()
+        GamepadKeyBus.setPlayerHandler { edges.add(it); true }
+        GamepadKeyBus.onKeyEvent(key(KeyEvent.ACTION_DOWN, TEST_DEVICE_ID))
+        GamepadKeyBus.onKeyEvent(key(KeyEvent.ACTION_DOWN, TEST_DEVICE_ID + 1))
+        GamepadKeyBus.releasePressedInputs(TEST_DEVICE_ID)
+        assertEquals(listOf(TEST_DEVICE_ID to true, (TEST_DEVICE_ID + 1) to true,
+            TEST_DEVICE_ID to false), edges.map { it.deviceId to it.isPress })
+        assertTrue(GamepadKeyBus.onKeyEvent(key(KeyEvent.ACTION_UP, TEST_DEVICE_ID + 1)))
+        assertEquals((TEST_DEVICE_ID + 1) to false, edges.last().let { it.deviceId to it.isPress })
+    }
+
+    @Test fun disconnectClearsOnlyThatControllersAnalogDirections() = onInputBus {
+        val edges = mutableListOf<GamepadKeyBus.GamepadEvent>()
+        GamepadKeyBus.setPlayerHandler { edges.add(it); true }
+        val first = axisMotion(0.8f, TEST_DEVICE_ID)
+        val second = axisMotion(0.8f, TEST_DEVICE_ID + 1)
+        try {
+            GamepadKeyBus.onMotionEvent(first)
+            GamepadKeyBus.onMotionEvent(second)
+            GamepadKeyBus.releasePressedInputs(TEST_DEVICE_ID)
+            assertFalse(GamepadKeyBus.onMotionEvent(second))
+            assertTrue(GamepadKeyBus.onMotionEvent(first))
+            assertEquals(listOf(true, false, true), edges.filter { it.deviceId == TEST_DEVICE_ID }.map { it.isPress })
+            assertEquals(listOf(true), edges.filter { it.deviceId == TEST_DEVICE_ID + 1 }.map { it.isPress })
+        } finally { first.recycle(); second.recycle() }
+    }
+
+    @Test fun removalOfAnUnrelatedDeviceLeavesHeldActionsAlone() = onInputBus {
+        val edges = mutableListOf<GamepadKeyBus.GamepadEvent>()
+        GamepadKeyBus.setPlayerHandler { edges.add(it); true }
+        GamepadKeyBus.onKeyEvent(key(KeyEvent.ACTION_DOWN))
+        GamepadKeyBus.releasePressedInputs(TEST_DEVICE_ID + 1)
+        assertEquals(1, edges.size)
+        assertTrue(GamepadKeyBus.onKeyEvent(key(KeyEvent.ACTION_UP)))
+    }
+
+    private fun axisMotion(x: Float, deviceId: Int = TEST_DEVICE_ID): MotionEvent {
         val properties = MotionEvent.PointerProperties().apply { id = 0 }
         val coordinates = MotionEvent.PointerCoords().apply { this.x = x }
         return MotionEvent.obtain(0L, 0L, MotionEvent.ACTION_MOVE, 1,
             arrayOf(properties), arrayOf(coordinates), 0, 0, 1f, 1f,
-            TEST_DEVICE_ID, 0, InputDevice.SOURCE_JOYSTICK, 0)
+            deviceId, 0, InputDevice.SOURCE_JOYSTICK, 0)
     }
 
-    private fun key(action: Int) = KeyEvent(0L, 0L, action, KeyEvent.KEYCODE_BUTTON_START,
-        0, 0, TEST_DEVICE_ID, 0, 0, InputDevice.SOURCE_GAMEPAD)
+    private fun key(action: Int, deviceId: Int = TEST_DEVICE_ID) = KeyEvent(0L, 0L, action, KeyEvent.KEYCODE_BUTTON_START,
+        0, 0, deviceId, 0, 0, InputDevice.SOURCE_GAMEPAD)
 
     private fun onInputBus(block: () -> Unit) {
         InstrumentationRegistry.getInstrumentation().runOnMainSync {

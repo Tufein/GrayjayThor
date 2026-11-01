@@ -19,4 +19,5 @@ fi
     --tests '*PluginAppIdentityTest' \
     --tests '*SuccessorUpdateTest' \
     --tests '*SettingsRepositoryImplTest' \
+    --tests 'com.tsutsen.platformplayer.player.*' \
     -PtargetAbis=arm64-v8a,x86_64 --max-workers=4 "$@"

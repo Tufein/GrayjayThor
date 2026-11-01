@@ -40,6 +40,7 @@ object GamepadKeyBus {
         val keyCode: Int,
         val deviceName: String?,
         val isPress: Boolean,
+        val deviceId: Int = 0,
     )
 
     private val _events = MutableSharedFlow<GamepadEvent>(extraBufferCapacity = 64)
@@ -78,10 +79,10 @@ object GamepadKeyBus {
      * Capture ownership is unchanged; callers ending capture should also call
      * [endCapture]. Like the other input entry points, call on the main thread.
      */
-    fun releasePressedInputs() {
-        val releases = pressedKeys.values.map { it.copy(isPress = false) }
-        pressedKeys.clear()
-        axisState.clear()
+    fun releasePressedInputs(deviceId: Int? = null) {
+        val keys = pressedKeys.keys.filter { deviceId == null || (it shr 32).toInt() == deviceId }
+        val releases = keys.mapNotNull { pressedKeys.remove(it)?.copy(isPress = false) }
+        axisState.keys.removeAll { deviceId == null || (it shr 32).toInt() == deviceId }
         for (edge in releases) {
             _events.tryEmit(edge)
             // A held player action must end even if binding capture started
@@ -176,7 +177,7 @@ object GamepadKeyBus {
         val edge =
             when {
                 isPress && !pressedKeys.containsKey(id) -> {
-                    GamepadEvent(keyCode, name, isPress = true).also { pressedKeys[id] = it }
+                    GamepadEvent(keyCode, name, isPress = true, deviceId = deviceId).also { pressedKeys[id] = it }
                 }
 
                 !isPress && pressedKeys.containsKey(id) -> {

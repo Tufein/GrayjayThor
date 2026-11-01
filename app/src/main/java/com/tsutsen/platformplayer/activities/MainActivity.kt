@@ -7,6 +7,7 @@ import android.content.res.Configuration
 import android.util.DisplayMetrics
 import android.util.Log
 import android.hardware.display.DisplayManager
+import android.hardware.input.InputManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -122,6 +123,14 @@ class MainActivity :
     private var companionStarted = false
     private var companionRetryJob: Job? = null
     private val companionDisplays by lazy { checkNotNull(getSystemService(DisplayManager::class.java)) }
+    private val inputDevices by lazy { checkNotNull(getSystemService(InputManager::class.java)) }
+    private val inputDeviceListener = object : InputManager.InputDeviceListener {
+        override fun onInputDeviceAdded(deviceId: Int) = Unit
+        override fun onInputDeviceChanged(deviceId: Int) = Unit
+        override fun onInputDeviceRemoved(deviceId: Int) {
+            GamepadKeyBus.releasePressedInputs(deviceId)
+        }
+    }
     private val companionDisplayListener = object : DisplayManager.DisplayListener {
         override fun onDisplayAdded(displayId: Int) = ensureCompanion()
         override fun onDisplayRemoved(displayId: Int) = ensureCompanion()
@@ -179,6 +188,7 @@ class MainActivity :
         pipLog("onStart")
         companionStarted = true
         companionDisplays.registerDisplayListener(companionDisplayListener, Handler(Looper.getMainLooper()))
+        inputDevices.registerInputDeviceListener(inputDeviceListener, Handler(Looper.getMainLooper()))
         // PiP UI state is deliberately NOT synced here: onStart fires
         // mid-expansion while the window size is still settling. The flip
         // happens in onResume, when the window is final, so the surface
@@ -347,6 +357,7 @@ class MainActivity :
         companionRetryJob?.cancel()
         companionRetryJob = null
         companionDisplays.unregisterDisplayListener(companionDisplayListener)
+        inputDevices.unregisterInputDeviceListener(inputDeviceListener)
         GamepadKeyBus.releasePressedInputs()
         // A still-composed binding popup owns capture until its effect ends.
         // Retaining that ownership also preserves binding after foreground return.
@@ -371,6 +382,7 @@ class MainActivity :
         companionStarted = false
         companionRetryJob?.cancel()
         companionDisplays.unregisterDisplayListener(companionDisplayListener)
+        inputDevices.unregisterInputDeviceListener(inputDeviceListener)
         dismissCompanion()
         PipSurface.surfaceView.value = null
         pip.close()

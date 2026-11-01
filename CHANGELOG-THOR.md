@@ -1,5 +1,37 @@
 # Bluejay Thor changes
 
+## 0.7.2-thor.1 — playback and controller reliability
+
+- Safe relative seeking when a stream's duration is unknown, including remote
+  playback without a local decoder. Sub-500 ms clips no longer produce invalid
+  seek ranges, and large offsets cannot wrap to a negative position.
+- Remapping a controller action replaces its original key; explicit assignments
+  take precedence over another action's default without reviving removed actions.
+- Speed-up/slow-down holds combine deterministically across buttons and devices,
+  restore the original rate in either release order, and honor explicit speed
+  selections and controller disablement.
+- Disconnecting a controller releases only that device's held keys and axes.
+  Another connected controller retains its active input state.
+- Cancel stale comment-page requests when switching/closing videos, reject late
+  results and collapse duplicate scroll requests into one in-flight page load.
+- Start live chat once per video instead of reconnecting on volume, speed or
+  other unrelated player-state updates.
+
+### Validation
+
+- `scripts/build-thor.sh --console=plain` completed successfully.
+- **91 JVM tests passed, zero failures or skips:** 47 application tests and
+  44 playback-control/gesture tests, including 24 new regression tests.
+- **16 Android instrumentation tests passed, zero failures or skips**, on an
+  Android 9 / API 28 x86_64 emulator, including three new tests for independent
+  controller disconnection and held-input cleanup.
+- Thor debug APKs built for arm64-v8a and x86_64, version `0.7.2-thor.1` / `7002`.
+- ARM64 APK signature and 16 KiB ZIP alignment verified; the signing certificate
+  matches `0.7.1-thor.1` for in-place preview updates.
+
+Physical Thor and online-provider/casting playback still require
+hardware/service validation.
+
 ## 0.7.1-thor.1 — development preview
 
 Based on the complete Bluejay 0.7.0 source, commit

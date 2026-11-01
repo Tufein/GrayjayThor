@@ -86,7 +86,8 @@ this environment use `--proxy=http --proxy_host=proxy --proxy_port=8080`.
 
 ## Validation
 
-`scripts/build-thor.sh` runs the 67 targeted JVM checks alongside both APK builds.
+`scripts/build-thor.sh` runs the targeted playback, input, settings, update and
+gesture JVM regressions alongside both APK builds.
 With a matching Android device or emulator connected, run the focused Android
 regressions with the same init script:
 
