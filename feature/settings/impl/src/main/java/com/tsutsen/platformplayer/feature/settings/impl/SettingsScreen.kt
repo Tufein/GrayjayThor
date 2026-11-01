@@ -127,6 +127,7 @@ import com.tsutsen.platformplayer.core.model.SourceInfo
 import com.tsutsen.platformplayer.core.navigation.Navigator
 import com.tsutsen.platformplayer.core.ui.GamepadKeyBus
 import com.tsutsen.platformplayer.core.data.update.GithubReleaseUpdate
+import com.tsutsen.platformplayer.core.data.log.AppLogShare
 import com.tsutsen.platformplayer.core.data.log.PlaybackLogShare
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -1833,6 +1834,24 @@ private fun AboutItems(viewModel: SettingsViewModel) {
                             Toast.makeText(context, "No playback log saved yet", Toast.LENGTH_LONG).show()
                         } else {
                             context.startActivity(intent)
+                        }
+                    },
+                    groupPosition = GroupPosition.Middle,
+                )
+            }
+            if (context.packageName == "com.tufein.bluejay.thor") {
+                SettingsOptionCard(
+                    icon = Icons.Filled.Code,
+                    title = "Share app log",
+                    subtitle = "Saves the app's recent log to Downloads and shares it",
+                    onClick = {
+                        scope.launch {
+                            val uri = withContext(Dispatchers.IO) { AppLogShare.save(context) }
+                            if (uri == null) {
+                                Toast.makeText(context, "Could not save the log", Toast.LENGTH_LONG).show()
+                            } else {
+                                context.startActivity(AppLogShare.shareIntent(uri))
+                            }
                         }
                     },
                     groupPosition = GroupPosition.Middle,

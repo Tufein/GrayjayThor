@@ -88,6 +88,7 @@ import com.tsutsen.platformplayer.states.StateApp
 import com.tsutsen.platformplayer.states.StatePlatform
 import com.tsutsen.platformplayer.states.StatePlugins
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -118,6 +119,9 @@ fun GettingStartedFlow(
     var sources by remember { mutableStateOf(emptyList<IPlatformClient>()) }
     var checkedSources by remember { mutableStateOf<Set<String>>(emptySet()) }
     var selectedSourceUrl by remember { mutableStateOf<String?>(null) }
+    // Default plugins that are still missing after a retry, with the reason.
+    var missingDefaults by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
+    val appContext = androidx.compose.ui.platform.LocalContext.current
     // A source's Login button hands its config over: the login screen is
     // hosted inside the overlay, because navigating the main graph (as the
     // plugin browser does) would land on the hidden screen underneath.
@@ -136,6 +140,23 @@ fun GettingStartedFlow(
             // Now that the plugins are loaded, fetch the currently enabled
             // ones and check them.
             checkedSources = StatePlatform.instance.getEnabledClients().map { it.id }.toSet()
+        }
+        // A default plugin (YouTube) that is missing from the list was not
+        // installed at startup: retry once and remember why it failed.
+        if (step == 1) {
+            val context = appContext
+            val defaults = StatePlugins.instance.getEmbeddedSourcesDefault(context)
+            if (defaults.any { id -> sources.none { it.id == id } }) {
+                withContext(Dispatchers.IO) {
+                    StatePlugins.instance.installMissingEmbeddedPlugins(context)
+                    StatePlatform.instance.updateAvailableClients(context)
+                }
+                sources = StatePlatform.instance.getAvailableClients()
+                checkedSources =
+                    checkedSources + StatePlatform.instance.getEnabledClients().map { it.id }
+                missingDefaults = defaults.filter { id -> sources.none { it.id == id } }
+                    .map { id -> id to (StatePlugins.instance.embeddedInstallErrors[id] ?: "unknown reason") }
+            }
         }
     }
 
@@ -207,6 +228,7 @@ fun GettingStartedFlow(
                 when (step) {
                     0 -> WelcomeStep()
                     1 -> SourcesStep(
+                            missingDefaults = missingDefaults,
                             sources = availableSources,
                             checked = checkedSources,
                             onToggle = { id ->
@@ -496,6 +518,7 @@ private fun WelcomeStep(modifier: Modifier = Modifier) {
  */
 @Composable
 private fun SourcesStep(
+    missingDefaults: List<Pair<String, String>>,
     sources: List<IPlatformClient>,
     checked: Set<String>,
     onToggle: (String) -> Unit,
@@ -511,6 +534,16 @@ private fun SourcesStep(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(Tokens.SpaceLg))
+        if (missingDefaults.isNotEmpty()) {
+            Text(
+                "The built-in YouTube plugin could not be installed (" +
+                    missingDefaults.joinToString { it.second } +
+                    "). Finish the setup, then use Settings > About > Share app log and send the file.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+            )
+            Spacer(Modifier.height(Tokens.SpaceLg))
+        }
         if (sources.isEmpty()) {
             Text(
                 "No sources available yet — you can continue and enable them later.",
